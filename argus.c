@@ -17,15 +17,50 @@ int parse_linha(char *buff, char **str)
 {
     char *tok;
     tok = strtok(buff, " ");
-    int i;
+
+    
+        str[0] = strdup(tok);
+        tok = strtok(NULL, "");
+        if(tok){
+        str[1] = strdup(tok);
+       
+        }
+    return 1;
+}
+
+//Função que faz parsing do argumento
+int parse_arg(char *buff, char **str)
+{
+   
+    char *tok;
+
+    //aponta para o segundo elemento do buffer
+    char* str2 = &(buff[1]);
+
+    tok = strtok(str2,"\"");
+    tok = strtok(str2, "|");
+   
+    
+    int i; 
 
     for (i = 0; tok; i++)
     {
+        if(sizeof(str)<i){ 
+        str=realloc(str,sizeof(str)+sizeof(char**)*5);}
+
         str[i] = strdup(tok);
-        tok = strtok(NULL, " ");
+        
+        tok = strtok(NULL, "|");
+           
+      
     }
+
     return i;
+    
+   
 }
+
+
 
 ssize_t readln(int fd, void *buff, size_t n)
 {
@@ -49,6 +84,20 @@ ssize_t readln(int fd, void *buff, size_t n)
         return -1;
 
     return s;
+}
+
+
+
+void exec(char *args){
+    int i=0;
+    char **str = malloc(sizeof(char **)*5);
+    i=parse_arg(args,str);
+    myprint(str[0]);
+    myprint(str[1]);
+    myprint(str[2]);
+     myprint(str[3]);
+
+    return ;
 }
 
 int shell()
@@ -75,7 +124,9 @@ int shell()
             else if (!strcmp(args[0], "executar") && args[1])
             {
                 //exec
-                myprint("exec\n");
+                //myprint(args[1]);
+                exec(args[1]);
+                
             }
             else if (!strcmp(args[0], "listar"))
             {
