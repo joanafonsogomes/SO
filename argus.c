@@ -151,10 +151,14 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[1], "-h"))
         {
-            //help))
+            myprint("\e[1mtempo-inactividade\e[0m segs\n");
+            myprint("\e[1mtempo-execucao\e[0m segs\n");
+            myprint("\e[1mexecutar\e[0m p1 | p2 ... | pn\n");
+            myprint("\e[1mlistar\e[0m\n");
+            myprint("\e[1mterminar\e[0m tarefa\n");
+            myprint("\e[1mhistorico\e[0m\n");
+            
         }
-        printf("%s\n", argv[1]);
     }
-
     return 0;
 }
