@@ -80,7 +80,7 @@ int shell()
             else if (!strcmp(args[0], "listar"))
             {
                 //list
-                myprint("inac\n");
+                myprint("list\n");
             }
             else if (!strcmp(args[0], "terminar") && args[1])
             {
@@ -128,37 +128,51 @@ int main(int argc, char **argv)
         if (!strcmp(argv[1], "-i"))
         {
             //tempo-inatividade
+              myprint("inac\n");
         }
         else if (!strcmp(argv[1], "-m"))
         {
             //tempo execucao
+                myprint("texec\n");
+          
         }
         else if (!strcmp(argv[1], "-e"))
         {
             //exec
+                myprint("exec\n");
         }
         else if (!strcmp(argv[1], "-l"))
         {
             //list))
+                 myprint("list\n");
         }
         else if (!strcmp(argv[1], "-t"))
         {
             //kill
+              myprint("term\n");
         }
         else if (!strcmp(argv[1], "-r"))
         {
             //history
+              myprint("his\n");
         }
         else if (!strcmp(argv[1], "-h"))
         {
-            myprint("\e[1mtempo-inactividade\e[0m segs\n");
-            myprint("\e[1mtempo-execucao\e[0m segs\n");
-            myprint("\e[1mexecutar\e[0m p1 | p2 ... | pn\n");
-            myprint("\e[1mlistar\e[0m\n");
-            myprint("\e[1mterminar\e[0m tarefa\n");
-            myprint("\e[1mhistorico\e[0m\n");
-            
+            //help))
+            myprint("\e[1margus\e[0m segs\n");
+             myprint("\e[1m-i\e[0m segs\n");
+                myprint("\e[1m-m\e[0m segs\n");
+                myprint("\e[1m-e\e[0m p1 | p2 ... | pn\n");
+                myprint("\e[1m-l\e[0m\n");
+                myprint("\e[1m-t\e[0m tarefa\n");
+                myprint("\e[1m-r\e[0m\n");
         }
+        else
+        {
+            myprint("\e[1mComando invalido! Insira \e[4majuda\e[24m para obter ajuda.\e[0m");
+        }
+        printf("\n");
     }
+
     return 0;
 }
