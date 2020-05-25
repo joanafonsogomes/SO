@@ -1,6 +1,7 @@
 CFLAGS=-Wall
 FICHEIROS=Makefile 
 EXECUTAVEL=argus
+APAGAR=log
 CC=gcc
 
 $(EXECUTAVEL): argus.o
@@ -10,6 +11,6 @@ zip: $(FICHEIROS)
 	zip -9 SO1920.zip $(FICHEIROS)
 
 clean:
-	rm -rf *.o $(EXECUTAVEL)
+	rm -rf *.o $(EXECUTAVEL) $(APAGAR)
 
 argus.o: argus.c argus.h

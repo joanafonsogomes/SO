@@ -34,68 +34,71 @@ int parse_linha(char *buff, char **str)
 
 int command_finish(char *command)
 {
-    COMMAND c;
+    COMMAND c = malloc(sizeof(struct command));
     int bytes_read;
-    int res;
+    int res = -1;
 
+    myprint("ola tudo bem?\n");
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    while (bytes_read = read(fd, &c, sizeof(COMMAND)) > 0)
+    myprint("nao xau\n");
+    while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
     {
+        myprint(c->command);
         if (strcmp(c->command, command))
         {
             c->state = FINISHED;
-            res = lseek(fd, -sizeof(COMMAND), SEEK_CUR);
-            res = write(fd, &c, sizeof(COMMAND));
+            res = lseek(fd, -sizeof(struct command), SEEK_CUR);
+            res = write(fd, &c, sizeof(struct command));
         }
         else
         {
-            lseek(fd, sizeof(COMMAND), SEEK_CUR);
+            lseek(fd, sizeof(struct command), SEEK_CUR);
         }
+        myprint("\n");
+        printf("state: %d\n",c->state);
     }
 
-    return 1;
+    return res;
 }
 
+
 //Escrever um comando passado como argumento para o ficheiro que contem todos os comandos usando o append
-int write_command(int fd, char *command)
+int write_command(char *command)
 {
-    myprint("\n\n");
-    myprint(command);
-    myprint("\nTA A DAR MERDA\n");
-    COMMAND new_command;
-    myprint("Foi aqui?\n");
+    int res;
+    COMMAND new_command = malloc(sizeof(struct command));
     new_command->state = RUNNING;
     strcpy(new_command->command, command);
-    myprint(new_command->command);
 
-    printf("\n%d\n", fd);
-    int res = write(fd, &new_command, sizeof(COMMAND));
-    printf("\n%d\n", res);
+    int fd = open(COMMAND_FILE, O_RDWR | O_APPEND | O_CREAT, 0640);
+
+    if((res = write(fd, &new_command, sizeof(struct command)))<0){
+        myprint("Error in write\n");
+    };
+    close(fd);
     return res;
 }
 
 //Função que faz parsing do argumento
 int parse_arg(char *buff)
 {
-
+    int i;
     char *tok;
 
     //aponta para o segundo elemento do buffer
     char *str2 = &(buff[1]);
+    //retira o ultimo elemento da string
+    str2[strlen(str2) - 1] = '\0';
 
-    tok = strtok(str2, "\"");
     tok = strtok(str2, "|");
-
-    int i;
-
-    int fd = open(COMMAND_FILE, O_RDWR | O_CREAT, 0640);
 
     for (i = 0; tok; i++)
     {
-        write_command(fd, strdup(tok));
+        write_command(strdup(tok));
         tok = strtok(NULL, "|");
     }
-    myprint("acabou");
+    myprint("acabou\n");
+    i = command_finish("wc-l");
     return i;
 }
 
@@ -130,11 +133,11 @@ void exec(char *args)
 
 int shell()
 {
-    char *buff = malloc(150);
+    char *buff = malloc(sizeof(char*)*150);
     while (1)
     {
         myprint("argus$ ");
-        if (readln(0, buff, 150))
+        if (readln(0, buff, sizeof(char*)*150))
         {
 
             char **args = malloc(sizeof(char **));
