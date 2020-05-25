@@ -12,4 +12,4 @@ zip: $(FICHEIROS)
 clean:
 	rm -rf *.o $(EXECUTAVEL)
 
-argus.o: argus.c
+argus.o: argus.c argus.h

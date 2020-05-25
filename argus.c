@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include "argus.h"
 
 int myprint(char *s)
 {
@@ -18,49 +23,81 @@ int parse_linha(char *buff, char **str)
     char *tok;
     tok = strtok(buff, " ");
 
-    
-        str[0] = strdup(tok);
-        tok = strtok(NULL, "");
-        if(tok){
+    str[0] = strdup(tok);
+    tok = strtok(NULL, "");
+    if (tok)
+    {
         str[1] = strdup(tok);
-       
-        }
+    }
     return 1;
 }
 
-//Função que faz parsing do argumento
-int parse_arg(char *buff, char **str)
+int command_finish(char *command)
 {
-   
+    COMMAND c;
+    int bytes_read;
+    int res;
+
+    int fd = open(COMMAND_FILE, O_RDWR, 0640);
+    while (bytes_read = read(fd, &c, sizeof(COMMAND)) > 0)
+    {
+        if (strcmp(c->command, command))
+        {
+            c->state = FINISHED;
+            res = lseek(fd, -sizeof(COMMAND), SEEK_CUR);
+            res = write(fd, &c, sizeof(COMMAND));
+        }
+        else
+        {
+            lseek(fd, sizeof(COMMAND), SEEK_CUR);
+        }
+    }
+
+    return 1;
+}
+
+//Escrever um comando passado como argumento para o ficheiro que contem todos os comandos usando o append
+int write_command(int fd, char *command)
+{
+    myprint("\n\n");
+    myprint(command);
+    myprint("\nTA A DAR MERDA\n");
+    COMMAND new_command;
+    myprint("Foi aqui?\n");
+    new_command->state = RUNNING;
+    strcpy(new_command->command, command);
+    myprint(new_command->command);
+
+    printf("\n%d\n", fd);
+    int res = write(fd, &new_command, sizeof(COMMAND));
+    printf("\n%d\n", res);
+    return res;
+}
+
+//Função que faz parsing do argumento
+int parse_arg(char *buff)
+{
+
     char *tok;
 
     //aponta para o segundo elemento do buffer
-    char* str2 = &(buff[1]);
+    char *str2 = &(buff[1]);
 
-    tok = strtok(str2,"\"");
+    tok = strtok(str2, "\"");
     tok = strtok(str2, "|");
-   
-    
-    int i; 
+
+    int i;
+
+    int fd = open(COMMAND_FILE, O_RDWR | O_CREAT, 0640);
 
     for (i = 0; tok; i++)
     {
-        if(sizeof(str)<i){ 
-        str=realloc(str,sizeof(str)+sizeof(char**)*5);}
-
-        str[i] = strdup(tok);
-        
+        write_command(fd, strdup(tok));
         tok = strtok(NULL, "|");
-           
-      
     }
-
+    myprint("acabou");
     return i;
-    
-   
 }
-
-
 
 ssize_t readln(int fd, void *buff, size_t n)
 {
@@ -86,18 +123,9 @@ ssize_t readln(int fd, void *buff, size_t n)
     return s;
 }
 
-
-
-void exec(char *args){
-    int i=0;
-    char **str = malloc(sizeof(char **)*5);
-    i=parse_arg(args,str);
-    myprint(str[0]);
-    myprint(str[1]);
-    myprint(str[2]);
-     myprint(str[3]);
-
-    return ;
+void exec(char *args)
+{
+    parse_arg(args);
 }
 
 int shell()
@@ -126,7 +154,6 @@ int shell()
                 //exec
                 //myprint(args[1]);
                 exec(args[1]);
-                
             }
             else if (!strcmp(args[0], "listar"))
             {
@@ -145,7 +172,7 @@ int shell()
             }
             else if (!strcmp(args[0], "ajuda"))
             {
-                
+
                 myprint("\e[1mtempo-inactividade\e[0m segs\n");
                 myprint("\e[1mtempo-execucao\e[0m segs\n");
                 myprint("\e[1mexecutar\e[0m p1 | p2 ... | pn\n");
@@ -179,44 +206,43 @@ int main(int argc, char **argv)
         if (!strcmp(argv[1], "-i"))
         {
             //tempo-inatividade
-              myprint("inac\n");
+            myprint("inac\n");
         }
         else if (!strcmp(argv[1], "-m"))
         {
             //tempo execucao
-                myprint("texec\n");
-          
+            myprint("texec\n");
         }
         else if (!strcmp(argv[1], "-e"))
         {
             //exec
-                myprint("exec\n");
+            myprint("exec\n");
         }
         else if (!strcmp(argv[1], "-l"))
         {
             //list))
-                 myprint("list\n");
+            myprint("list\n");
         }
         else if (!strcmp(argv[1], "-t"))
         {
             //kill
-              myprint("term\n");
+            myprint("term\n");
         }
         else if (!strcmp(argv[1], "-r"))
         {
             //history
-              myprint("his\n");
+            myprint("his\n");
         }
         else if (!strcmp(argv[1], "-h"))
         {
             //help))
             myprint("\e[1margus\e[0m segs\n");
-             myprint("\e[1m-i\e[0m segs\n");
-                myprint("\e[1m-m\e[0m segs\n");
-                myprint("\e[1m-e\e[0m p1 | p2 ... | pn\n");
-                myprint("\e[1m-l\e[0m\n");
-                myprint("\e[1m-t\e[0m tarefa\n");
-                myprint("\e[1m-r\e[0m\n");
+            myprint("\e[1m-i\e[0m segs\n");
+            myprint("\e[1m-m\e[0m segs\n");
+            myprint("\e[1m-e\e[0m p1 | p2 ... | pn\n");
+            myprint("\e[1m-l\e[0m\n");
+            myprint("\e[1m-t\e[0m tarefa\n");
+            myprint("\e[1m-r\e[0m\n");
         }
         else
         {
