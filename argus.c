@@ -41,7 +41,7 @@ int command_finish(char *command)
     myprint("ola tudo bem?\n");
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
     myprint("nao xau\n");
-    while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
+    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
     {
         myprint(c->command);
         if (strcmp(c->command, command))
@@ -72,7 +72,7 @@ int write_command(char *command)
 
     int fd = open(COMMAND_FILE, O_RDWR | O_APPEND | O_CREAT, 0640);
 
-    if((res = write(fd, &new_command, sizeof(struct command)))<0){
+    if((res = write(fd, &new_command, sizeof(struct command)))<=0){
         myprint("Error in write\n");
     };
     close(fd);
@@ -92,13 +92,19 @@ int parse_arg(char *buff)
 
     tok = strtok(str2, "|");
 
+    myprint(tok);
+    myprint("\n");
+
     for (i = 0; tok; i++)
     {
         write_command(strdup(tok));
         tok = strtok(NULL, "|");
+        myprint(tok);
+        myprint("\n");
+        i = command_finish(tok);
+        myprint("\n");
     }
     myprint("acabou\n");
-    i = command_finish("wc-l");
     return i;
 }
 
