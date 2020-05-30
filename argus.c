@@ -43,7 +43,7 @@ int command_finish(char *command)
     //myprint("nao xau\n");
     while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
     {
-        printf("%s\n",c->command);
+        //myprint(c->command);
         if (!strcmp(c->command, command))
         {
             c->state = FINISHED;
