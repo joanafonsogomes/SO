@@ -38,24 +38,23 @@ int command_finish(char *command)
     int bytes_read;
     int res = -1;
 
-    myprint("ola tudo bem?\n");
+    //myprint("ola tudo bem?\n");
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    myprint("nao xau\n");
-    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
+    //myprint("nao xau\n");
+    while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
     {
-        myprint(c->command);
-        if (strcmp(c->command, command))
+        printf("%s\n",c->command);
+        if (!strcmp(c->command, command))
         {
             c->state = FINISHED;
             res = lseek(fd, -sizeof(struct command), SEEK_CUR);
             res = write(fd, &c, sizeof(struct command));
-        }
-        else
+        }else
         {
             lseek(fd, sizeof(struct command), SEEK_CUR);
         }
-        myprint("\n");
-        printf("state: %d\n",c->state);
+        //myprint("\n");
+        //printf("state: %d\n",c->state);
     }
 
     return res;
@@ -72,7 +71,7 @@ int write_command(char *command)
 
     int fd = open(COMMAND_FILE, O_RDWR | O_APPEND | O_CREAT, 0640);
 
-    if((res = write(fd, &new_command, sizeof(struct command)))<=0){
+    if((res = write(fd, &new_command, sizeof(struct command)))<0){
         myprint("Error in write\n");
     };
     close(fd);
@@ -92,44 +91,57 @@ int parse_arg(char *buff)
 
     tok = strtok(str2, "|");
 
-    myprint(tok);
-    myprint("\n");
+    //myprint(tok);
+    //myprint("\n");
 
     for (i = 0; tok; i++)
     {
         write_command(strdup(tok));
         tok = strtok(NULL, "|");
-        myprint(tok);
-        myprint("\n");
-        i = command_finish(tok);
-        myprint("\n");
+        //myprint(tok);
+        //myprint("\n");
+        //myprint("\n");
     }
-    myprint("acabou\n");
+    //myprint("acabou\n");
+    i = command_finish("p1");
     return i;
 }
 
-ssize_t readln(int fd, void *buff, size_t n)
+ssize_t readln(int fildes, void *buf, size_t nbyte)
 {
-    char c = ' ';
-    size_t s = 0, r = 1;
-    char *temp = (char *)buff;
+	size_t i = 0;
+	ssize_t n = 1;
+	char c = ' ';
+	
+	/* Enquanto está a ler algo mas que seja menos de nbyte caracteres, e não seja o '\n' */
+	while ((i < nbyte) && (n > 0) && (c != '\n')) {
+		//Lê um caractere
+		n = read(fildes, &c, 1);
+		// Se não for o '\n' adiciona-o ao buffer
+		if (n && (c != '\n')) {
+			((char*) buf)[i] = c;
+			i++;
+		}
+	}
 
-    while ((s < n) && r && (c != '\n'))
-    {
+	// Adição de EOF == 0 com verificação no caso de chegar ao limite de leitura (N);
+	if (i < nbyte) {
+		((char*) buf)[i] = 0;
+    } else {
+		// passou o limite (i == 100). buf[99] = EOF.
+		i--;
+		((char*) buf)[i] = 0;
+	}
 
-        r = read(fd, &c, 1);
-
-        if (r && (c != '\n'))
-        {
-            temp[s] = c;
-            s++;
-        }
+	// se deu erro na leitura retorna esse mesmo erro
+	if (n < 0) {
+		return n;
     }
-    temp[s] = 0;
-    if (s == 0 && temp[s] == '\n')
-        return -1;
-
-    return s;
+	// no caso de apanhar a linha só com o '\n'
+	if ((n == 0) && (i == 0)) {
+		return (-1);
+    }
+    return i;
 }
 
 void exec(char *args)
