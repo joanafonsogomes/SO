@@ -38,43 +38,40 @@ int command_finish(char *command)
     int bytes_read;
     int res = -1;
 
-    //myprint("ola tudo bem?\n");
+    printf("ola tudo bem?\n");
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
     //myprint("nao xau\n");
     while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
     {
-        //myprint(c->command);
+        //myprint(strdup(c->command));
         if (!strcmp(c->command, command))
         {
             c->state = FINISHED;
             res = lseek(fd, -sizeof(struct command), SEEK_CUR);
             res = write(fd, &c, sizeof(struct command));
-        }else
-        {
-            lseek(fd, sizeof(struct command), SEEK_CUR);
         }
         //myprint("\n");
         //printf("state: %d\n",c->state);
     }
-
+    close(fd);
     return res;
 }
 
 
 //Escrever um comando passado como argumento para o ficheiro que contem todos os comandos usando o append
-int write_command(char *command)
+int write_command(int fd, char *command)
 {
     int res;
     COMMAND new_command = malloc(sizeof(struct command));
     new_command->state = RUNNING;
     strcpy(new_command->command, command);
 
-    int fd = open(COMMAND_FILE, O_RDWR | O_APPEND | O_CREAT, 0640);
+    
 
     if((res = write(fd, &new_command, sizeof(struct command)))<0){
         myprint("Error in write\n");
     };
-    close(fd);
+    
     return res;
 }
 
@@ -83,7 +80,7 @@ int parse_arg(char *buff)
 {
     int i;
     char *tok;
-
+    int fd = open(COMMAND_FILE, O_RDWR | O_APPEND | O_CREAT, 0640);
     //aponta para o segundo elemento do buffer
     char *str2 = &(buff[1]);
     //retira o ultimo elemento da string
@@ -96,14 +93,15 @@ int parse_arg(char *buff)
 
     for (i = 0; tok; i++)
     {
-        write_command(strdup(tok));
+        write_command(fd,strdup(tok));
         tok = strtok(NULL, "|");
         //myprint(tok);
         //myprint("\n");
         //myprint("\n");
     }
-    //myprint("acabou\n");
-    i = command_finish("p1");
+    close(fd);
+    printf("acabou\n");
+    printf("isto?\n");
     return i;
 }
 
@@ -147,7 +145,11 @@ ssize_t readln(int fildes, void *buf, size_t nbyte)
 void exec(char *args)
 {
     parse_arg(args);
+    printf("PO CARALHO\n");
+    command_finish("p1");
+    printf("unicornios\n");
 }
+
 
 int shell()
 {
@@ -157,7 +159,7 @@ int shell()
         myprint("argus$ ");
         if (readln(0, buff, sizeof(char*)*150))
         {
-
+            printf("-> %s\n",buff);
             char **args = malloc(sizeof(char **));
             parse_linha(buff, args);
             if (!strcmp(args[0], "tempo-inactividade") && args[1])
