@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
 #include "argus.h"
 
 int myprint(char *s)
@@ -38,37 +37,48 @@ int command_finish(char *command)
     int bytes_read;
     int res = -1;
 
-    printf("ola tudo bem?\n");
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    //myprint("nao xau\n");
+   
     while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
     {
-        //myprint(strdup(c->command));
+        
         if (!strcmp(c->command, command))
         {
+            myprint(strdup(c->command));
             c->state = FINISHED;
             res = lseek(fd, -sizeof(struct command), SEEK_CUR);
             res = write(fd, &c, sizeof(struct command));
         }
-        //myprint("\n");
-        //printf("state: %d\n",c->state);
+       
     }
     close(fd);
     return res;
+}
+
+void commands_print()
+{
+    COMMAND c = malloc(sizeof(struct command));
+    int bytes_read;
+
+    int fd = open(COMMAND_FILE, O_RDWR, 0640);
+    while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
+    {
+        myprint(c->command);
+    }
+    close(fd);
 }
 
 
 //Escrever um comando passado como argumento para o ficheiro que contem todos os comandos usando o append
 int write_command(int fd, char *command)
 {
+    
     int res;
     COMMAND new_command = malloc(sizeof(struct command));
     new_command->state = RUNNING;
     strcpy(new_command->command, command);
-
     
-
-    if((res = write(fd, &new_command, sizeof(struct command)))<0){
+  if((res = write(fd, &new_command, sizeof(new_command)))<0){
         myprint("Error in write\n");
     };
     
@@ -81,6 +91,7 @@ int parse_arg(char *buff)
     int i;
     char *tok;
     int fd = open(COMMAND_FILE, O_RDWR | O_APPEND | O_CREAT, 0640);
+    
     //aponta para o segundo elemento do buffer
     char *str2 = &(buff[1]);
     //retira o ultimo elemento da string
@@ -88,20 +99,15 @@ int parse_arg(char *buff)
 
     tok = strtok(str2, "|");
 
-    //myprint(tok);
-    //myprint("\n");
-
+   
+    
     for (i = 0; tok; i++)
     {
         write_command(fd,strdup(tok));
         tok = strtok(NULL, "|");
-        //myprint(tok);
-        //myprint("\n");
-        //myprint("\n");
+        
     }
     close(fd);
-    printf("acabou\n");
-    printf("isto?\n");
     return i;
 }
 
@@ -145,9 +151,7 @@ ssize_t readln(int fildes, void *buf, size_t nbyte)
 void exec(char *args)
 {
     parse_arg(args);
-    printf("PO CARALHO\n");
-    command_finish("p1");
-    printf("unicornios\n");
+    commands_print();
 }
 
 
