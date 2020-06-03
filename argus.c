@@ -39,7 +39,7 @@ int command_finish(char *command)
 
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
    
-    while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
+    while ((bytes_read = read(fd, &c, sizeof(c))) > 0)
     {
         
         if (!strcmp(c->command, command))
@@ -61,7 +61,7 @@ void commands_print()
     int bytes_read;
 
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    while ((bytes_read = read(fd, &c, sizeof(struct command))) > 0)
+    while ((bytes_read = read(fd, &c, sizeof(c))) > 0)
     {
         myprint(c->command);
     }
