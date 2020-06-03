@@ -39,7 +39,7 @@ int command_finish(char *command)
 
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
    
-    while ((bytes_read = read(fd, &c, sizeof(c))) > 0)
+    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
     {
         
         if (!strcmp(c->command, command))
@@ -47,7 +47,7 @@ int command_finish(char *command)
             myprint(strdup(c->command));
             c->state = FINISHED;
             res = lseek(fd, -sizeof(struct command), SEEK_CUR);
-            res = write(fd, &c, sizeof(struct command));
+            res = write(fd, c, sizeof(struct command));
         }
        
     }
@@ -61,7 +61,7 @@ void commands_print()
     int bytes_read;
 
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    while ((bytes_read = read(fd, &c, sizeof(c))) > 0)
+    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
     {
         myprint(c->command);
     }
@@ -78,7 +78,7 @@ int write_command(int fd, char *command)
     new_command->state = RUNNING;
     strcpy(new_command->command, command);
     
-  if((res = write(fd, &new_command, sizeof(new_command)))<0){
+  if((res = write(fd, new_command, sizeof(struct command)))<0){
         myprint("Error in write\n");
     };
     
@@ -86,16 +86,24 @@ int write_command(int fd, char *command)
 }
 
 //Função que faz parsing do argumento
-int parse_arg(char *buff)
+int parse_arg(char *buff, int j)
 {
     int i;
     char *tok;
-    int fd = open(COMMAND_FILE, O_RDWR | O_APPEND | O_CREAT, 0640);
+    int fd = open(COMMAND_FILE, O_RDWR | O_CREAT, 0640);
+    lseek(fd,0,SEEK_END);
+    char *str2= buff;
     
+    //retirar aspas na shell
+    if (j==SHELL){
     //aponta para o segundo elemento do buffer
-    char *str2 = &(buff[1]);
+    str2 = &(buff[1]);
     //retira o ultimo elemento da string
     str2[strlen(str2) - 1] = '\0';
+
+    }
+    
+
 
     tok = strtok(str2, "|");
 
@@ -148,9 +156,9 @@ ssize_t readln(int fildes, void *buf, size_t nbyte)
     return i;
 }
 
-void exec(char *args)
+void exec(char *args, int i)
 {
-    parse_arg(args);
+    parse_arg(args,i);
     commands_print();
 }
 
@@ -180,7 +188,7 @@ int shell()
             {
                 //exec
                 //myprint(args[1]);
-                exec(args[1]);
+                exec(args[1], SHELL);
             }
             else if (!strcmp(args[0], "listar"))
             {
@@ -240,10 +248,12 @@ int main(int argc, char **argv)
             //tempo execucao
             myprint("texec\n");
         }
-        else if (!strcmp(argv[1], "-e"))
+        else if (!strcmp(argv[1], "-e")&& argv[2])
         {
             //exec
-            myprint("exec\n");
+            //myprint(argv[2]);
+            exec(argv[2], TERMINAL);
+            
         }
         else if (!strcmp(argv[1], "-l"))
         {
