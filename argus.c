@@ -63,7 +63,7 @@ void commands_print()
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
     while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
     {
-        myprint(c->command);
+       myprint(c->command);
     }
     close(fd);
 }
@@ -75,7 +75,7 @@ int write_command(int fd, char *command)
     
     int res;
     COMMAND new_command = malloc(sizeof(struct command));
-    new_command->state = RUNNING;
+    new_command->state = INITIAL;
     strcpy(new_command->command, command);
     
   if((res = write(fd, new_command, sizeof(struct command)))<0){

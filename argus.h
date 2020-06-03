@@ -1,8 +1,8 @@
 #ifndef ___ARGUS_H___
 #define ___ARGUS_H___
-
-#define RUNNING  0
-#define FINISHED 1
+#define INITIAL 0
+#define RUNNING  1
+#define FINISHED 2
 #define COMMAND_FILE "log"
 #define SHELL 0
 #define TERMINAL 1
