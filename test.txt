@@ -1,0 +1,6 @@
+executar "p1|p2"
+executar "p3"
+executar "p4"
+
+
+ajuda

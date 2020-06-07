@@ -38,10 +38,10 @@ int command_finish(char *command)
     int res = -1;
 
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
-   
+
     while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
     {
-        
+
         if (!strcmp(c->command, command))
         {
             myprint(strdup(c->command));
@@ -49,7 +49,6 @@ int command_finish(char *command)
             res = lseek(fd, -sizeof(struct command), SEEK_CUR);
             res = write(fd, c, sizeof(struct command));
         }
-       
     }
     close(fd);
     return res;
@@ -63,25 +62,91 @@ void commands_print()
     int fd = open(COMMAND_FILE, O_RDWR, 0640);
     while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
     {
-       myprint(c->command);
+        myprint(c->command);
     }
     close(fd);
 }
 
+void functions_print()
+{
+    FUNCTION f = malloc(sizeof(struct function));
+    int bytes_read;
+
+    int fd = open(FUNCTIONS_FILE, O_RDWR, 0640);
+    while ((bytes_read = read(fd, f, sizeof(struct function))) > 0)
+    {
+        for (int i = 0; i < f->commands_number; i++)
+        {
+            myprint((f->commands)[i]->command);
+            myprint("\n");
+        }
+    }
+    close(fd);
+}
+
+int commands_number()
+{
+    COMMAND c = malloc(sizeof(struct command));
+    int bytes_read;
+    int commands_number = 0;
+    int fd = open(COMMAND_FILE, O_RDWR, 0640);
+    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
+    {
+        commands_number++;
+    }
+    close(fd);
+    return commands_number;
+}
+
+void logs_write()
+{
+    int c_number = commands_number();
+    int bytes_read;
+    FUNCTION new_function = malloc(sizeof(struct function));
+    new_function->type = EXECUTAR;
+    new_function->commands_number = c_number;
+
+    int fd1 = open(COMMAND_FILE, O_RDWR, 0640);
+
+    for (int i = 0; i < c_number; i++)
+    {
+        COMMAND c = malloc(sizeof(struct command));
+        if ((bytes_read = read(fd1, c, sizeof(struct command))) > 0)
+        {
+            (new_function->commands)[i] = c;
+        }
+        else
+        {
+            perror("Error in read");
+        }
+    }
+    close(fd1);
+
+    int fd2 = open(FUNCTIONS_FILE, O_RDWR | O_CREAT, 0640);
+    lseek(fd2, 0, SEEK_END);
+    int res;
+    if ((res = write(fd2, new_function, sizeof(struct function))) < 0)
+    {
+        myprint("Error in write\n");
+    };
+
+    close(fd2);
+}
 
 //Escrever um comando passado como argumento para o ficheiro que contem todos os comandos usando o append
 int write_command(int fd, char *command)
 {
-    
+
     int res;
     COMMAND new_command = malloc(sizeof(struct command));
     new_command->state = INITIAL;
     strcpy(new_command->command, command);
-    
-  if((res = write(fd, new_command, sizeof(struct command)))<0){
+
+    if ((res = write(fd, new_command, sizeof(struct command))) < 0)
+    {
         myprint("Error in write\n");
     };
-    
+
     return res;
 }
 
@@ -91,29 +156,24 @@ int parse_arg(char *buff, int j)
     int i;
     char *tok;
     int fd = open(COMMAND_FILE, O_RDWR | O_CREAT, 0640);
-    lseek(fd,0,SEEK_END);
-    char *str2= buff;
-    
+    lseek(fd, 0, SEEK_END);
+    char *str2 = buff;
+
     //retirar aspas na shell
-    if (j==SHELL){
-    //aponta para o segundo elemento do buffer
-    str2 = &(buff[1]);
-    //retira o ultimo elemento da string
-    str2[strlen(str2) - 1] = '\0';
-
+    if (j == SHELL)
+    {
+        //aponta para o segundo elemento do buffer
+        str2 = &(buff[1]);
+        //retira o ultimo elemento da string
+        str2[strlen(str2) - 1] = '\0';
     }
-    
-
 
     tok = strtok(str2, "|");
 
-   
-    
     for (i = 0; tok; i++)
     {
-        write_command(fd,strdup(tok));
+        write_command(fd, strdup(tok));
         tok = strtok(NULL, "|");
-        
     }
     close(fd);
     return i;
@@ -121,57 +181,66 @@ int parse_arg(char *buff, int j)
 
 ssize_t readln(int fildes, void *buf, size_t nbyte)
 {
-	size_t i = 0;
-	ssize_t n = 1;
-	char c = ' ';
-	
-	/* Enquanto está a ler algo mas que seja menos de nbyte caracteres, e não seja o '\n' */
-	while ((i < nbyte) && (n > 0) && (c != '\n')) {
-		//Lê um caractere
-		n = read(fildes, &c, 1);
-		// Se não for o '\n' adiciona-o ao buffer
-		if (n && (c != '\n')) {
-			((char*) buf)[i] = c;
-			i++;
-		}
-	}
+    size_t i = 0;
+    ssize_t n = 1;
+    char c = ' ';
 
-	// Adição de EOF == 0 com verificação no caso de chegar ao limite de leitura (N);
-	if (i < nbyte) {
-		((char*) buf)[i] = 0;
-    } else {
-		// passou o limite (i == 100). buf[99] = EOF.
-		i--;
-		((char*) buf)[i] = 0;
-	}
-
-	// se deu erro na leitura retorna esse mesmo erro
-	if (n < 0) {
-		return n;
+    /* Enquanto está a ler algo mas que seja menos de nbyte caracteres, e não seja o '\n' */
+    while ((i < nbyte) && (n > 0) && (c != '\n'))
+    {
+        //Lê um caractere
+        n = read(fildes, &c, 1);
+        // Se não for o '\n' adiciona-o ao buffer
+        if (n && (c != '\n'))
+        {
+            ((char *)buf)[i] = c;
+            i++;
+        }
     }
-	// no caso de apanhar a linha só com o '\n'
-	if ((n == 0) && (i == 0)) {
-		return (-1);
+
+    // Adição de EOF == 0 com verificação no caso de chegar ao limite de leitura (N);
+    if (i < nbyte)
+    {
+        ((char *)buf)[i] = 0;
+    }
+    else
+    {
+        // passou o limite (i == 100). buf[99] = EOF.
+        i--;
+        ((char *)buf)[i] = 0;
+    }
+
+    // se deu erro na leitura retorna esse mesmo erro
+    if (n < 0)
+    {
+        return n;
+    }
+    // no caso de apanhar a linha só com o '\n'
+    if ((n == 0) && (i == 0))
+    {
+        return (-1);
     }
     return i;
 }
 
 void exec(char *args, int i)
 {
-    parse_arg(args,i);
+    parse_arg(args, i);
     commands_print();
+    myprint("\n\n\n");
+    logs_write();
+    functions_print();
 }
-
 
 int shell()
 {
-    char *buff = malloc(sizeof(char*)*150);
+    char *buff = malloc(sizeof(char *) * 150);
     while (1)
     {
         myprint("argus$ ");
-        if (readln(0, buff, sizeof(char*)*150))
+        if (readln(0, buff, sizeof(char *) * 150))
         {
-            printf("-> %s\n",buff);
+            printf("-> %s\n", buff);
             char **args = malloc(sizeof(char **));
             parse_linha(buff, args);
             if (!strcmp(args[0], "tempo-inactividade") && args[1])
@@ -248,12 +317,11 @@ int main(int argc, char **argv)
             //tempo execucao
             myprint("texec\n");
         }
-        else if (!strcmp(argv[1], "-e")&& argv[2])
+        else if (!strcmp(argv[1], "-e") && argv[2])
         {
             //exec
             //myprint(argv[2]);
             exec(argv[2], TERMINAL);
-            
         }
         else if (!strcmp(argv[1], "-l"))
         {

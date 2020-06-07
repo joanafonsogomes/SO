@@ -1,7 +1,7 @@
 CFLAGS=-Wall
 FICHEIROS=Makefile 
 EXECUTAVEL=argus
-APAGAR=log
+APAGAR=log aux
 CC=gcc
 
 $(EXECUTAVEL): argus.o
