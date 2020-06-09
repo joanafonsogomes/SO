@@ -49,7 +49,7 @@ union Data {
 //Estrutura para uma funcionalidade no sistema
 struct function{
 	int type;
-   	float tempo;
+   	int tempo;
 	int commands_number;
    	struct command commands[COMMAND_NUMBER_MAX];
    	int tarefa;

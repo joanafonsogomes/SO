@@ -105,6 +105,7 @@ int commands_number()
     return commands_number;
 }
 
+
 int logs_write()
 {
     int c_number = commands_number();
@@ -244,10 +245,36 @@ ssize_t readln(int fildes, void *buf, size_t nbyte)
 void exec(char *args, int i)
 {
     parse_arg(args, i);
-    commands_print();
-    myprint("\n\n\n");
     logs_write();
-    //functions_print();
+}
+
+int send(FUNCTION new_function){
+     int out = open(SERVER_PIPE, O_WRONLY);
+	if (out < 0) {
+    puts("Server's offline");
+	return -1;
+	}
+
+
+    int res;
+    if ((res = write(out, new_function, sizeof(struct function))) < 0)
+    {
+        perror("Error in write in pipe");
+    };
+
+
+    close(out);
+    return 0;
+}
+
+void tmp_exec(char*args)
+{
+   // myprint(args);
+    FUNCTION new_function = malloc(sizeof(struct function));
+    new_function->type = TEMPO_EXECUCAO;
+    new_function->tempo =atoi(args);
+    send(new_function);
+
 }
 
 int shell()
@@ -261,33 +288,33 @@ int shell()
             printf("-> %s\n", buff);
             char **args = malloc(sizeof(char **));
             parse_linha(buff, args);
-            if (!strcmp(args[0], "tempo-inactividade") && args[1])
+            if (!strcmp(args[0], "tempo-inactividade") && args[1]&& !args[2])
             {
                 //tempo inatividade
                 myprint("inac\n");
             }
-            else if (!strcmp(args[0], "tempo-execucao") && args[1])
+            else if (!strcmp(args[0], "tempo-execucao") && args[1] && !args[2])
             {
                 //tempo execucao
-                myprint("texec\n");
+                tmp_exec(args[1]);
             }
-            else if (!strcmp(args[0], "executar") && args[1])
+            else if (!strcmp(args[0], "executar") && args[1]&& !args[2])
             {
                 //exec
                 //myprint(args[1]);
                 exec(args[1], SHELL);
             }
-            else if (!strcmp(args[0], "listar"))
+            else if (!strcmp(args[0], "listar")&& !args[1])
             {
                 //list
                 myprint("list\n");
             }
-            else if (!strcmp(args[0], "terminar") && args[1])
+            else if (!strcmp(args[0], "terminar") && args[1] && !args[2])
             {
                 //kill
                 myprint("term\n");
             }
-            else if (!strcmp(args[0], "historico"))
+            else if (!strcmp(args[0], "historico")&& !args[1])
             {
                 //history
                 myprint("his\n");
@@ -325,33 +352,32 @@ int main(int argc, char **argv)
     }
     else
     {
-        if (!strcmp(argv[1], "-i"))
+        if (!strcmp(argv[1], "-i")  && args[2] && !args[3])
         {
             //tempo-inatividade
             myprint("inac\n");
         }
-        else if (!strcmp(argv[1], "-m"))
+        else if (!strcmp(argv[1], "-m") && args[2]&& !args[3])
         {
             //tempo execucao
             myprint("texec\n");
         }
-        else if (!strcmp(argv[1], "-e") && argv[2])
+        else if (!strcmp(argv[1], "-e") && argv[2]&& !args[3])
         {
-            //exec
-            //myprint(argv[2]);
+          
             exec(argv[2], TERMINAL);
         }
-        else if (!strcmp(argv[1], "-l"))
+        else if (!strcmp(argv[1], "-l") && !args[2])
         {
             //list))
             myprint("list\n");
         }
-        else if (!strcmp(argv[1], "-t"))
+        else if (!strcmp(argv[1], "-t")  && args[2] && !args[3])
         {
             //kill
             myprint("term\n");
         }
-        else if (!strcmp(argv[1], "-r"))
+        else if (!strcmp(argv[1], "-r")&& !args[2])
         {
             //history
             myprint("his\n");

@@ -12,7 +12,8 @@
 #define IN 0
 #define OUT 1
 
-int words_count(char *command){
+int words_count(char *command)
+{
     int conta = 0;
 
     for (int i = 0; command[i] != '\0'; i++)
@@ -23,7 +24,7 @@ int words_count(char *command){
     return conta;
 }
 
-int divide_command(char *command, char ** str)
+int divide_command(char *command, char **str)
 {
     int i = 0;
     char *tok;
@@ -61,13 +62,11 @@ int executa(FUNCTION f)
                 dup2(pipeAnt, STDIN_FILENO);
                 close(pipeAnt);
             }
-            printf("chegou\n");
-
             printf("%s\n", (f->commands)[i].command);
             int count = words_count((f->commands)[i].command);
-            char **command_divided = malloc((count+1)*sizeof(char*));
+            char **command_divided = malloc((count + 1) * sizeof(char *));
 
-            divide_command((f->commands)[i].command,command_divided);
+            divide_command((f->commands)[i].command, command_divided);
 
             (f->commands)[i].state = RUNNING;
             execvp(command_divided[0], command_divided);
@@ -86,7 +85,14 @@ int executa(FUNCTION f)
     return 0;
 }
 
-void sigint_handler(int signum){
+int tempo_exec(FUNCTION f)
+{
+    printf("Tempo: %d\n", f->tempo);
+    return 0;
+}
+
+void sigint_handler(int signum)
+{
     puts("Closing server...");
     unlink(SERVER_PIPE);
     _exit(0);
@@ -123,11 +129,17 @@ int main(int argc, char **argv)
         FUNCTION f = malloc(sizeof(struct function));
 
         bytes_read = read(in, f, sizeof(struct function));
-        if(bytes_read<=0);
-        else{
+        if (bytes_read <= 0)
+            ;
+        else
+        {
             if (f->type == EXECUTAR)
             {
                 executa(f);
+            }
+            else if (f->type == TEMPO_EXECUCAO)
+            {
+                tempo_exec(f);
             }
             write(log, f, sizeof(struct function));
         }
