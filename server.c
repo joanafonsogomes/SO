@@ -95,7 +95,7 @@ void sigint_handler(int signum){
 int main(int argc, char **argv)
 {
     signal(SIGINT, sigint_handler);
-    
+
     puts("Starting server...");
     puts("Creating pipe...");
     mkfifo(SERVER_PIPE, 0666);
@@ -127,10 +127,6 @@ int main(int argc, char **argv)
         else{
             if (f->type == EXECUTAR)
             {
-                printf("ola\n");
-                printf("1 %d\n", f->type);
-                printf("2 %d\n", f->commands_number);
-                printf("3 %d\n", (f->commands)[0].state);
                 executa(f);
             }
             write(log, f, sizeof(struct function));
