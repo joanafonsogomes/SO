@@ -51,6 +51,7 @@ int command_finish(char *command)
         }
     }
     close(fd);
+    free(c);
     return res;
 }
 
@@ -65,6 +66,7 @@ void commands_print()
         myprint(c->command);
     }
     close(fd);
+    free(c);
 }
 
 /*
@@ -99,6 +101,7 @@ int commands_number()
         commands_number++;
     }
     close(fd);
+    free(c);
     return commands_number;
 }
 
@@ -114,8 +117,9 @@ int logs_write()
 
     for (int i = 0; i < c_number; i++)
     {
-        COMMAND c = malloc(sizeof(struct command));
-        if ((bytes_read = read(fd1, c, sizeof(struct command))) > 0)
+        struct command c;
+
+        if ((bytes_read = read(fd1, &c, sizeof(struct command))) > 0)
         {
             (new_function->commands)[i] = c;
         }
@@ -143,6 +147,7 @@ int logs_write()
 
 
     close(out);
+    free(new_function);
     return 0;
 }
 

@@ -24,7 +24,7 @@
 #define AJUDA             6
 #define OUTPUT            7
 
-#define COMMAND_LENGTH_MAX 200
+#define COMMAND_LENGTH_MAX 100
 #define COMMAND_NUMBER_MAX 20
 
 
@@ -51,12 +51,11 @@ struct function{
 	int type;
    	float tempo;
 	int commands_number;
-   	COMMAND commands[COMMAND_NUMBER_MAX];
+   	struct command commands[COMMAND_NUMBER_MAX];
    	int tarefa;
 };
 
 typedef struct function *FUNCTION;
 
-int myprint(char *s);
 
 #endif
