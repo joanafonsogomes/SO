@@ -12,21 +12,38 @@
 #define IN             0
 #define OUT            1
 
-int executa() {
-    char** comandos[4];
-    char* grep[] = {"grep", "-v", "^#", "/etc/passwd", NULL};
-    char* cut[] = {"cut", "-f7", "-d:", NULL};
-    char* uniq[] = {"uniq", NULL};
-    char* wc[] = {"wc", "-l", NULL};
-    comandos[0] = grep;
-    comandos[1] = cut;
-    comandos[2] = uniq;
-    comandos[3] = wc;
+char** divide_command(char *command)
+{
+    int conta=0,i;
 
+for(i=0;command[i]!= '\0'; i++ ) {
+
+    if(command[i] ==' ')
+        conta++;
+}
+
+    char** str= malloc((conta+1) *sizeof(char*));
+
+    char *tok;
+    tok = strtok(command, " ");
+
+    for (i = 0; tok; i++)
+    {
+        str[i]=malloc(20* sizeof(char));
+        strcpy(str[i], strdup(tok));
+        tok = strtok(NULL, " ");
+    }
+    return str;
+   
+}
+
+
+
+int executa(FUNCTION f) {
     int pipeAnt = STDIN_FILENO;
     int proxPipe[2];
-    int n = 4;
-
+    int n = f->commands_number;
+      printf("%s\n",(f->commands)[0]->command);
     for (int i = 0; i < n; ++i) {
         if (i < n - 1)
             pipe(proxPipe);
@@ -40,7 +57,15 @@ int executa() {
                 dup2(pipeAnt, STDIN_FILENO);
                 close(pipeAnt);
             }
-            execvp(comandos[i][0], comandos[i]);
+            printf("chegou\n");
+            printf("%s\n",(f->commands)[i]->command);
+            COMMAND aux = (f->commands)[i];
+             puts(aux->command);
+            char** command_divided = divide_command(aux->command);
+            aux->state=RUNNING;
+             puts(command_divided[0]);
+            execvp(command_divided[0],command_divided);
+            aux->state=FINISHED;
             _exit(1);
         }
         if (i < n - 1)
@@ -55,14 +80,61 @@ int executa() {
 }
 
 
-executar "p1|p2"
-
-executar "p3|p4"
-
-"p1|p2|p3|p4"
 
 int main(int argc, char **argv)
 {
+    puts("Starting server...");
+	puts("Creating pipe...");
+    mkfifo(SERVER_PIPE,0666);
+
+    puts("Opening pipe...");
+	int in = open(SERVER_PIPE, O_RDONLY);
+	if (in < 0) {perror("open() in"); return -1;}
+	
+	puts("Opening file...");
+	int log = open(LOG, O_CREAT | O_WRONLY | O_APPEND, 0640);
+	if (log < 0) {perror("open() log"); return -1;}
+	//write(log, SEP, strlen(SEP));
+
+puts("Reading...");
+    while (1) {
+     FUNCTION f = malloc(sizeof(struct function));
+    int bytes_read;
+
+    while ((bytes_read = read(in, f, sizeof(struct function))) > 0)
+    {
+        if(f->type==EXECUTAR){
+            executa(f);
+            }
+        write(log,f, sizeof(struct function));
+    }
+    //falta sair do server em condições
+    //break;
+    }
+
+	/*
+    puts("Reading...");
+	char buf[BUFSIZE];
+	int n;
+	while (1) {
+		n = read(in, buf, );
+		if (n <= 0);
+		else if (strncmp(buf, "stop", 4) == 0)
+			break;
+		else {
+			write(log, buf, n);
+			write(log, "\n", 1);
+		}
+	}*/
+
+	puts("Closing server...");
+	close(in);
+	close(log);
+	unlink(SERVER_PIPE);
+
+
+
+
     /*
     int fd;
 	int flag;
@@ -80,7 +152,7 @@ int main(int argc, char **argv)
     }
     
 */
-
+/*
     int fd;
     if ((fd = open(COMMAND_FILE, O_RDWR, 0640)) >= 0)
     {
@@ -96,6 +168,6 @@ int main(int argc, char **argv)
     {
         perror("Erro a abrir o ficheiro");
     }
-
+*/
     return 0;
 }

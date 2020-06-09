@@ -67,10 +67,13 @@ void commands_print()
     close(fd);
 }
 
+/*
 void functions_print()
 {
     FUNCTION f = malloc(sizeof(struct function));
     int bytes_read;
+
+
 
     int fd = open(FUNCTIONS_FILE, O_RDWR, 0640);
     while ((bytes_read = read(fd, f, sizeof(struct function))) > 0)
@@ -79,11 +82,12 @@ void functions_print()
         {
             myprint((f->commands)[i]->command);
             myprint("\n");
+
         }
     }
     close(fd);
 }
-
+*/
 int commands_number()
 {
     COMMAND c = malloc(sizeof(struct command));
@@ -98,7 +102,7 @@ int commands_number()
     return commands_number;
 }
 
-void logs_write()
+int logs_write()
 {
     int c_number = commands_number();
     int bytes_read;
@@ -121,16 +125,25 @@ void logs_write()
         }
     }
     close(fd1);
+    unlink(COMMAND_FILE);
 
-    int fd2 = open(FUNCTIONS_FILE, O_RDWR | O_CREAT, 0640);
-    lseek(fd2, 0, SEEK_END);
+
+    int out = open(SERVER_PIPE, O_WRONLY);
+	if (out < 0) {
+    puts("Server's offline");
+	return -1;
+	}
+
+
     int res;
-    if ((res = write(fd2, new_function, sizeof(struct function))) < 0)
+    if ((res = write(out, new_function, sizeof(struct function))) < 0)
     {
-        myprint("Error in write\n");
+        myprint("Error in write in pipe\n");
     };
 
-    close(fd2);
+
+    close(out);
+    return 0;
 }
 
 //Escrever um comando passado como argumento para o ficheiro que contem todos os comandos usando o append
@@ -229,7 +242,7 @@ void exec(char *args, int i)
     commands_print();
     myprint("\n\n\n");
     logs_write();
-    functions_print();
+    //functions_print();
 }
 
 int shell()

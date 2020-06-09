@@ -6,8 +6,10 @@
 #define FINISHED 2
 
 #define COMMAND_FILE "aux"
-#define FUNCTIONS_FILE "log"
+#define LOG "log"
 
+#define SERVER_PIPE "pipe"
+#define BUFSIZE	 512
 
 #define SHELL    0
 #define TERMINAL 1
@@ -55,5 +57,6 @@ struct function{
 
 typedef struct function *FUNCTION;
 
+int myprint(char *s);
 
 #endif
