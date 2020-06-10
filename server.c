@@ -96,7 +96,7 @@ int executa(FUNCTION f)
         if (fork() == 0)
         {
             // criar a ponte entre os comandos
-            //if(fork() == 0){
+
             //não cria no ultimo o proximo pipe
             if (i < n - 1)
             {
@@ -111,8 +111,6 @@ int executa(FUNCTION f)
                 dup2(pipeAnt, STDIN_FILENO);
                 close(pipeAnt);
             }
-            //}
-            //wait(NULL);
 
             printf("%s\n", (f->commands)[i].command);
             int count = words_count((f->commands)[i].command);
