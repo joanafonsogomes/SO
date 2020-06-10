@@ -5,17 +5,49 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "argus.h"
 #include <sys/wait.h>
 #include <signal.h>
+#include "argus.h"
 
 #define IN 0
 #define OUT 1
 
+/*
+Variável global que guarda o tempo máximo de execução de uma tarefa.
+*/
 int tmp_exec_MAX = 1000;
-int tmp_inat_MAX = 1000;
-int count_seconds = 0;
 
+/*
+Variável global que guarda o tempo máximo de inactividade de comunicação num pipe anónimo
+*/
+int tmp_inat_MAX = 1000;
+
+/*
+Função que "apanha" os sigint's recebidos e fecha o servidor dando unlink ao pipe.
+*/
+void sigint_handler(int signum)
+{
+    puts("Closing server...");
+    unlink(SERVER_PIPE);
+    _exit(0);
+}
+/*
+void sig_alarm_handler(int signum)
+{
+    alarm(1);
+    ++count_seconds;
+    if (count_seconds > tmp_exec_MAX)
+    {
+        count_seconds = 0;
+        kill(getpid(), SIGKILL);
+    }
+    printf("%d\n", count_seconds);
+}
+*/
+
+/*
+Função auxiliar que conta quantos espaços tem uma string
+*/
 int words_count(char *command)
 {
     int conta = 0;
@@ -28,6 +60,10 @@ int words_count(char *command)
     return conta;
 }
 
+/*
+Função que divide as diferentes palavras (separadas por espaços) 
+e coloca-as num array de strings passado como argumento.
+*/
 int divide_command(char *command, char **str)
 {
     int i = 0;
@@ -43,9 +79,12 @@ int divide_command(char *command, char **str)
     return i;
 }
 
+/*
+Função destinada a executar encadeadamente os comandos 
+recebidos através da struct FUNCTION.
+*/
 int executa(FUNCTION f)
 {
-
     int pipeAnt = STDIN_FILENO;
     int proxPipe[2];
     int n = f->commands_number;
@@ -67,6 +106,7 @@ int executa(FUNCTION f)
                 dup2(pipeAnt, STDIN_FILENO);
                 close(pipeAnt);
             }
+            
             printf("%s\n", (f->commands)[i].command);
             int count = words_count((f->commands)[i].command);
             char **command_divided = malloc((count + 1) * sizeof(char *));
@@ -74,8 +114,10 @@ int executa(FUNCTION f)
             divide_command((f->commands)[i].command, command_divided);
 
             (f->commands)[i].state = RUNNING;
-           // alarm(1);
+            
+            alarm(tmp_exec_MAX);
             execvp(command_divided[0], command_divided);
+
             (f->commands)[i].state = FINISHED;
 
             _exit(1);
@@ -91,40 +133,31 @@ int executa(FUNCTION f)
     return 0;
 }
 
+/*
+Função que atribui à variavel 'tmp_exec_MAX' o tempo máximo 
+de execução de uma tarefa.
+*/
 int tempo_exec(FUNCTION f)
 {
-    printf("Tempo: %d\n", f->tempo);
+    printf("Tempo de execução de uma tarefa: %d\n", f->tempo);
     tmp_exec_MAX = f->tempo;
     return 0;
 }
 
+/*
+Função que atribui à variavel 'tmp_inat_MAX' o tempo máximo 
+de inactividade de comunicação num pipe anónimo
+*/
 int temp_inat(FUNCTION f)
 {
+    printf("Tempo de inatividade num pipe: %d\n", f->tempo);
     tmp_inat_MAX = f->tempo;
     return 0;
 }
 
-void sigint_handler(int signum)
-{
-    puts("Closing server...");
-    unlink(SERVER_PIPE);
-    _exit(0);
-}
-
-void sig_alarm_handler(int signum)
-{
-    alarm(1);
-    ++count_seconds;
-    if (count_seconds > tmp_exec_MAX)
-    {
-        kill(getpid(), SIGINT);
-    }
-    printf("%d\n", count_seconds);
-}
-
 int main(int argc, char **argv)
 {
-    signal(SIGALRM, sig_alarm_handler);
+    //signal(SIGALRM, sig_alarm_handler);
     signal(SIGINT, sigint_handler);
 
     puts("Starting server...");
@@ -173,8 +206,6 @@ int main(int argc, char **argv)
             write(log, f, sizeof(struct function));
         }
         free(f);
-        //falta sair do server em condições
-        //break;
     }
 
     close(in);

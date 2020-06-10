@@ -1,6 +1,6 @@
-executar "p1|p2"
-executar "p3"
-executar "p4"
+executar "sleep 3"
+executar "ls|wc"
+executar "./teste.sh"
 
 
 ajuda

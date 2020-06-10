@@ -7,6 +7,10 @@
 #include <fcntl.h>
 #include "argus.h"
 
+/*
+Função similar ao puts do C que imprime para o ecrã (usando a chamada ao sistema write)
+o char* passado como argumento.
+*/
 int myprint(char *s)
 {
     const char *end = s;
@@ -16,7 +20,10 @@ int myprint(char *s)
     return end - s - 1;
 }
 
-//Função que faz parsing de uma linha
+/*
+Função que recebendo um char* como argumento separa-o no espaço 
+e coloca o resultado no segundo argumento.
+*/
 int parse_linha(char *buff, char **str)
 {
     char *tok;
@@ -31,173 +38,9 @@ int parse_linha(char *buff, char **str)
     return 1;
 }
 
-int command_finish(char *command)
-{
-    COMMAND c = malloc(sizeof(struct command));
-    int bytes_read;
-    int res = -1;
-
-    int fd = open(COMMAND_FILE, O_RDWR, 0640);
-
-    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
-    {
-
-        if (!strcmp(c->command, command))
-        {
-            myprint(strdup(c->command));
-            c->state = FINISHED;
-            res = lseek(fd, -sizeof(struct command), SEEK_CUR);
-            res = write(fd, c, sizeof(struct command));
-        }
-    }
-    close(fd);
-    free(c);
-    return res;
-}
-
-void commands_print()
-{
-    COMMAND c = malloc(sizeof(struct command));
-    int bytes_read;
-
-    int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
-    {
-        myprint(c->command);
-    }
-    close(fd);
-    free(c);
-}
-
 /*
-void functions_print()
-{
-    FUNCTION f = malloc(sizeof(struct function));
-    int bytes_read;
-
-
-
-    int fd = open(FUNCTIONS_FILE, O_RDWR, 0640);
-    while ((bytes_read = read(fd, f, sizeof(struct function))) > 0)
-    {
-        for (int i = 0; i < f->commands_number; i++)
-        {
-            myprint((f->commands)[i]->command);
-            myprint("\n");
-
-        }
-    }
-    close(fd);
-}
+Função para ler uma linha
 */
-int commands_number()
-{
-    COMMAND c = malloc(sizeof(struct command));
-    int bytes_read;
-    int commands_number = 0;
-    int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
-    {
-        commands_number++;
-    }
-    close(fd);
-    free(c);
-    return commands_number;
-}
-
-
-int logs_write()
-{
-    int c_number = commands_number();
-    int bytes_read;
-    FUNCTION new_function = malloc(sizeof(struct function));
-    new_function->type = EXECUTAR;
-    new_function->commands_number = c_number;
-
-    int fd1 = open(COMMAND_FILE, O_RDWR, 0640);
-
-    for (int i = 0; i < c_number; i++)
-    {
-        struct command c;
-
-        if ((bytes_read = read(fd1, &c, sizeof(struct command))) > 0)
-        {
-            (new_function->commands)[i] = c;
-        }
-        else
-        {
-            perror("Error in read");
-        }
-    }
-    close(fd1);
-    unlink(COMMAND_FILE);
-
-
-    int out = open(SERVER_PIPE, O_WRONLY);
-	if (out < 0) {
-    puts("Server's offline");
-	return -1;
-	}
-
-
-    int res;
-    if ((res = write(out, new_function, sizeof(struct function))) < 0)
-    {
-        myprint("Error in write in pipe\n");
-    };
-
-
-    close(out);
-    free(new_function);
-    return 0;
-}
-
-//Escrever um comando passado como argumento para o ficheiro que contem todos os comandos usando o append
-int write_command(int fd, char *command)
-{
-
-    int res;
-    COMMAND new_command = malloc(sizeof(struct command));
-    new_command->state = INITIAL;
-    strcpy(new_command->command, command);
-
-    if ((res = write(fd, new_command, sizeof(struct command))) < 0)
-    {
-        myprint("Error in write\n");
-    };
-
-    return res;
-}
-
-//Função que faz parsing do argumento
-int parse_arg(char *buff, int j)
-{
-    int i;
-    char *tok;
-    int fd = open(COMMAND_FILE, O_RDWR | O_CREAT, 0640);
-    lseek(fd, 0, SEEK_END);
-    char *str2 = buff;
-
-    //retirar aspas na shell
-    if (j == SHELL)
-    {
-        //aponta para o segundo elemento do buffer
-        str2 = &(buff[1]);
-        //retira o ultimo elemento da string
-        str2[strlen(str2) - 1] = '\0';
-    }
-
-    tok = strtok(str2, "|");
-
-    for (i = 0; tok; i++)
-    {
-        write_command(fd, strdup(tok));
-        tok = strtok(NULL, "|");
-    }
-    close(fd);
-    return i;
-}
-
 ssize_t readln(int fildes, void *buf, size_t nbyte)
 {
     size_t i = 0;
@@ -242,19 +85,17 @@ ssize_t readln(int fildes, void *buf, size_t nbyte)
     return i;
 }
 
-void exec(char *args, int i)
+/*
+Função que envia através do pipe a estrutura FUNCTION passada como argumento.
+*/
+int send(FUNCTION new_function)
 {
-    parse_arg(args, i);
-    logs_write();
-}
-
-int send(FUNCTION new_function){
-     int out = open(SERVER_PIPE, O_WRONLY);
-	if (out < 0) {
-    puts("Server's offline");
-	return -1;
-	}
-
+    int out = open(SERVER_PIPE, O_WRONLY);
+    if (out < 0)
+    {
+        puts("Server's offline");
+        return -1;
+    }
 
     int res;
     if ((res = write(out, new_function, sizeof(struct function))) < 0)
@@ -262,33 +103,217 @@ int send(FUNCTION new_function){
         perror("Error in write in pipe");
     };
 
-
     close(out);
     return 0;
 }
 
-void tmp_exec(char*args)
+/*
+int command_finish(char *command)
 {
-   // myprint(args);
+    COMMAND c = malloc(sizeof(struct command));
+    int bytes_read;
+    int res = -1;
+
+    int fd = open(COMMAND_FILE, O_RDWR, 0640);
+
+    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
+    {
+
+        if (!strcmp(c->command, command))
+        {
+            myprint(strdup(c->command));
+            c->state = FINISHED;
+            res = lseek(fd, -sizeof(struct command), SEEK_CUR);
+            res = write(fd, c, sizeof(struct command));
+        }
+    }
+    close(fd);
+    free(c);
+    return res;
+}
+*/
+
+/*
+void commands_print()
+{
+    COMMAND c = malloc(sizeof(struct command));
+    int bytes_read;
+
+    int fd = open(COMMAND_FILE, O_RDWR, 0640);
+    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
+    {
+        myprint(c->command);
+    }
+    close(fd);
+    free(c);
+}
+*/
+
+/*
+void functions_print()
+{
+    FUNCTION f = malloc(sizeof(struct function));
+    int bytes_read;
+
+
+
+    int fd = open(FUNCTIONS_FILE, O_RDWR, 0640);
+    while ((bytes_read = read(fd, f, sizeof(struct function))) > 0)
+    {
+        for (int i = 0; i < f->commands_number; i++)
+        {
+            myprint((f->commands)[i]->command);
+            myprint("\n");
+
+        }
+    }
+    close(fd);
+}
+*/
+
+/*
+Função que conta quantos comandos foram escritos no ficheiro auxiliar.
+*/
+int commands_number()
+{
+    COMMAND c = malloc(sizeof(struct command));
+    int bytes_read;
+    int commands_number = 0;
+    int fd = open(COMMAND_FILE, O_RDWR, 0640);
+    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
+    {
+        commands_number++;
+    }
+    close(fd);
+    free(c);
+    return commands_number;
+}
+
+/*
+Função que inicializa a estrutura FUNCTION, coloca todos os comandos e envia para o servidor.
+*/
+int send_server_exec()
+{
+    int c_number = commands_number();
+    int bytes_read;
+    FUNCTION new_function = malloc(sizeof(struct function));
+    new_function->type = EXECUTAR;
+    new_function->commands_number = c_number;
+
+    int fd1 = open(COMMAND_FILE, O_RDWR, 0640);
+
+    for (int i = 0; i < c_number; i++)
+    {
+        struct command c;
+
+        if ((bytes_read = read(fd1, &c, sizeof(struct command))) > 0)
+        {
+            (new_function->commands)[i] = c;
+        }
+        else
+        {
+            perror("Error in read");
+        }
+    }
+    close(fd1);
+    unlink(COMMAND_FILE);
+
+    send(new_function);
+
+    free(new_function);
+    return 0;
+}
+
+/*
+Função que escreve um comando passado como argumento 
+para o ficheiro que armazena temporariamente os comandos
+*/
+int write_command(int fd, char *command)
+{
+
+    int res;
+    COMMAND new_command = malloc(sizeof(struct command));
+    new_command->state = INITIAL;
+    strcpy(new_command->command, command);
+
+    if ((res = write(fd, new_command, sizeof(struct command))) < 0)
+    {
+        myprint("Error in write\n");
+    };
+
+    return res;
+}
+
+/*
+Função que faz parse dos comandos recebidos como argumento, 
+retirando as aspas no caso da shell e separando por '|'.
+*/
+int parse_arg(char *buff, int j)
+{
+    int i;
+    char *tok;
+    int fd = open(COMMAND_FILE, O_RDWR | O_CREAT, 0640);
+    lseek(fd, 0, SEEK_END);
+    char *str2 = buff;
+
+    //retirar aspas na shell
+    if (j == SHELL)
+    {
+        //aponta para o segundo elemento do buffer
+        str2 = &(buff[1]);
+        //retira o ultimo elemento da string
+        str2[strlen(str2) - 1] = '\0';
+    }
+
+    tok = strtok(str2, "|");
+
+    for (i = 0; tok; i++)
+    {
+        write_command(fd, strdup(tok));
+        tok = strtok(NULL, "|");
+    }
+    close(fd);
+    return i;
+}
+
+/*
+Funcão dedicada à funcionalidade executar
+*/
+void exec(char *args, int i)
+{
+    parse_arg(args, i);
+    send_server_exec();
+}
+
+/*
+Funcão dedicada à funcionalidade tempo de execução
+*/
+void tmp_exec(char *args)
+{
+    // myprint(args);
     FUNCTION new_function = malloc(sizeof(struct function));
     new_function->type = TEMPO_EXECUCAO;
-    new_function->tempo =atoi(args);
+    new_function->tempo = atoi(args);
     send(new_function);
     free(new_function);
-
 }
 
-void tmp_inat(char*args)
+/*
+Funcão dedicada à funcionalidade tempo de inatividade em pipe
+*/
+void tmp_inat(char *args)
 {
-   // myprint(args);
+    // myprint(args);
     FUNCTION new_function = malloc(sizeof(struct function));
     new_function->type = TEMPO_INATIVIDADE;
-    new_function->tempo =atoi(args);
+    new_function->tempo = atoi(args);
     send(new_function);
     free(new_function);
-
 }
 
+/*
+Função para executar as funcionalidades em modo shell
+*/
 int shell()
 {
     char *buff = malloc(sizeof(char *) * 150);
@@ -316,7 +341,7 @@ int shell()
                 //myprint(args[1]);
                 exec(args[1], SHELL);
             }
-            else if (!strcmp(args[0], "listar")&& !args[1])
+            else if (!strcmp(args[0], "listar") && !args[1])
             {
                 //list
                 myprint("list\n");
@@ -364,19 +389,19 @@ int main(int argc, char **argv)
     }
     else
     {
-        if (!strcmp(argv[1], "-i")  && argv[2] && !argv[3])
+        if (!strcmp(argv[1], "-i") && argv[2] && !argv[3])
         {
             //tempo-inatividade
             myprint("inac\n");
         }
-        else if (!strcmp(argv[1], "-m") && argv[2]&& !argv[3])
+        else if (!strcmp(argv[1], "-m") && argv[2] && !argv[3])
         {
             //tempo execucao
             myprint("texec\n");
         }
-        else if (!strcmp(argv[1], "-e") && argv[2]&& !argv[3])
+        else if (!strcmp(argv[1], "-e") && argv[2] && !argv[3])
         {
-          
+
             exec(argv[2], TERMINAL);
         }
         else if (!strcmp(argv[1], "-l") && !argv[2])
@@ -384,12 +409,12 @@ int main(int argc, char **argv)
             //list))
             myprint("list\n");
         }
-        else if (!strcmp(argv[1], "-t")  && argv[2] && !argv[3])
+        else if (!strcmp(argv[1], "-t") && argv[2] && !argv[3])
         {
             //kill
             myprint("term\n");
         }
-        else if (!strcmp(argv[1], "-r")&& !argv[2])
+        else if (!strcmp(argv[1], "-r") && !argv[2])
         {
             //history
             myprint("his\n");
