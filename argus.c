@@ -274,6 +274,18 @@ void tmp_exec(char*args)
     new_function->type = TEMPO_EXECUCAO;
     new_function->tempo =atoi(args);
     send(new_function);
+    free(new_function);
+
+}
+
+void tmp_inat(char*args)
+{
+   // myprint(args);
+    FUNCTION new_function = malloc(sizeof(struct function));
+    new_function->type = TEMPO_INATIVIDADE;
+    new_function->tempo =atoi(args);
+    send(new_function);
+    free(new_function);
 
 }
 
@@ -288,17 +300,17 @@ int shell()
             printf("-> %s\n", buff);
             char **args = malloc(sizeof(char **));
             parse_linha(buff, args);
-            if (!strcmp(args[0], "tempo-inactividade") && args[1]&& !args[2])
+            if (!strcmp(args[0], "tempo-inactividade") && args[1])
             {
                 //tempo inatividade
-                myprint("inac\n");
+                tmp_inat(args[1]);
             }
-            else if (!strcmp(args[0], "tempo-execucao") && args[1] && !args[2])
+            else if (!strcmp(args[0], "tempo-execucao") && args[1])
             {
                 //tempo execucao
                 tmp_exec(args[1]);
             }
-            else if (!strcmp(args[0], "executar") && args[1]&& !args[2])
+            else if (!strcmp(args[0], "executar") && args[1])
             {
                 //exec
                 //myprint(args[1]);
@@ -309,12 +321,12 @@ int shell()
                 //list
                 myprint("list\n");
             }
-            else if (!strcmp(args[0], "terminar") && args[1] && !args[2])
+            else if (!strcmp(args[0], "terminar") && args[1])
             {
                 //kill
                 myprint("term\n");
             }
-            else if (!strcmp(args[0], "historico")&& !args[1])
+            else if (!strcmp(args[0], "historico"))
             {
                 //history
                 myprint("his\n");
@@ -352,32 +364,32 @@ int main(int argc, char **argv)
     }
     else
     {
-        if (!strcmp(argv[1], "-i")  && args[2] && !args[3])
+        if (!strcmp(argv[1], "-i")  && argv[2] && !argv[3])
         {
             //tempo-inatividade
             myprint("inac\n");
         }
-        else if (!strcmp(argv[1], "-m") && args[2]&& !args[3])
+        else if (!strcmp(argv[1], "-m") && argv[2]&& !argv[3])
         {
             //tempo execucao
             myprint("texec\n");
         }
-        else if (!strcmp(argv[1], "-e") && argv[2]&& !args[3])
+        else if (!strcmp(argv[1], "-e") && argv[2]&& !argv[3])
         {
           
             exec(argv[2], TERMINAL);
         }
-        else if (!strcmp(argv[1], "-l") && !args[2])
+        else if (!strcmp(argv[1], "-l") && !argv[2])
         {
             //list))
             myprint("list\n");
         }
-        else if (!strcmp(argv[1], "-t")  && args[2] && !args[3])
+        else if (!strcmp(argv[1], "-t")  && argv[2] && !argv[3])
         {
             //kill
             myprint("term\n");
         }
-        else if (!strcmp(argv[1], "-r")&& !args[2])
+        else if (!strcmp(argv[1], "-r")&& !argv[2])
         {
             //history
             myprint("his\n");

@@ -12,6 +12,10 @@
 #define IN 0
 #define OUT 1
 
+int tmp_exec_MAX = 1000;
+int tmp_inat_MAX = 1000;
+int count_seconds = 0;
+
 int words_count(char *command)
 {
     int conta = 0;
@@ -41,6 +45,7 @@ int divide_command(char *command, char **str)
 
 int executa(FUNCTION f)
 {
+
     int pipeAnt = STDIN_FILENO;
     int proxPipe[2];
     int n = f->commands_number;
@@ -69,6 +74,7 @@ int executa(FUNCTION f)
             divide_command((f->commands)[i].command, command_divided);
 
             (f->commands)[i].state = RUNNING;
+           // alarm(1);
             execvp(command_divided[0], command_divided);
             (f->commands)[i].state = FINISHED;
 
@@ -88,6 +94,13 @@ int executa(FUNCTION f)
 int tempo_exec(FUNCTION f)
 {
     printf("Tempo: %d\n", f->tempo);
+    tmp_exec_MAX = f->tempo;
+    return 0;
+}
+
+int temp_inat(FUNCTION f)
+{
+    tmp_inat_MAX = f->tempo;
     return 0;
 }
 
@@ -98,8 +111,20 @@ void sigint_handler(int signum)
     _exit(0);
 }
 
+void sig_alarm_handler(int signum)
+{
+    alarm(1);
+    ++count_seconds;
+    if (count_seconds > tmp_exec_MAX)
+    {
+        kill(getpid(), SIGINT);
+    }
+    printf("%d\n", count_seconds);
+}
+
 int main(int argc, char **argv)
 {
+    signal(SIGALRM, sig_alarm_handler);
     signal(SIGINT, sigint_handler);
 
     puts("Starting server...");
@@ -140,6 +165,10 @@ int main(int argc, char **argv)
             else if (f->type == TEMPO_EXECUCAO)
             {
                 tempo_exec(f);
+            }
+            else if (f->type == TEMPO_INATIVIDADE)
+            {
+                temp_inat(f);
             }
             write(log, f, sizeof(struct function));
         }
