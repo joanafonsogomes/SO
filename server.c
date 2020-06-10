@@ -95,18 +95,25 @@ int executa(FUNCTION f)
             pipe(proxPipe);
         if (fork() == 0)
         {
+            // criar a ponte entre os comandos
+            //if(fork() == 0){
+            //não cria no ultimo o proximo pipe
             if (i < n - 1)
             {
                 close(proxPipe[IN]);
                 dup2(proxPipe[OUT], STDOUT_FILENO);
                 close(proxPipe[OUT]);
             }
+            // não executa na primeira iteração
             if (i > 0)
             {
+                alarm(tmp_inat_MAX);
                 dup2(pipeAnt, STDIN_FILENO);
                 close(pipeAnt);
             }
-            
+            //}
+            //wait(NULL);
+
             printf("%s\n", (f->commands)[i].command);
             int count = words_count((f->commands)[i].command);
             char **command_divided = malloc((count + 1) * sizeof(char *));
