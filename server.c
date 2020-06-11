@@ -31,6 +31,7 @@ void sigint_handler(int signum)
     unlink(SERVER_PIPE);
     _exit(0);
 }
+
 /*
 void sig_alarm_handler(int signum)
 {
@@ -45,9 +46,8 @@ void sig_alarm_handler(int signum)
 }
 */
 
-int write_log(FUNCTION f, int new_state)
+int write_log(FUNCTION f)
 {
-    f->state = new_state;
     int fd;
     if ((fd = open(LOG, O_WRONLY | O_CREAT, 0644)) < 0)
     {
@@ -61,6 +61,39 @@ int write_log(FUNCTION f, int new_state)
         perror("error writing log");
         return -1;
     }
+    printf("Comando escrito que contem: %s\n",(f->commands)[0].command);
+    close(fd);
+    return 1;
+}
+
+int re_write_function(FUNCTION new_function)
+{
+    int fd;
+    FUNCTION f = malloc(sizeof(struct function));
+    if ((fd = open(LOG, O_RDWR | O_CREAT, 0644)) < 0)
+    {
+        perror("error open log");
+        return -1;
+    }
+
+    int w;
+    //int res = -1;
+    int bytes_read;
+
+    while ((bytes_read = read(fd, f, sizeof(struct function))) > 0)
+    {
+        if (f->pid == new_function->pid)
+        {
+            printf("comando iniciado na tarefa %d\n", f->pid);
+            lseek(fd, -sizeof(struct function), SEEK_CUR);
+            if ((w = write(fd, new_function, sizeof(struct function))) < 0)
+            {
+                perror("error writing log");
+                return -1;
+            };
+        }
+    }
+    puts("algo mudou");
     close(fd);
     return 1;
 }
@@ -73,7 +106,8 @@ int temp_inat(FUNCTION f)
 {
     printf("Tempo de inatividade num pipe: %d\n", f->tempo);
     tmp_inat_MAX = f->tempo;
-    write_log(f, FINISHED);
+    f->state = FINISHED;
+    write_log(f);
     return 0;
 }
 
@@ -85,7 +119,8 @@ int tempo_exec(FUNCTION f)
 {
     printf("Tempo de execução de uma tarefa: %d\n", f->tempo);
     tmp_exec_MAX = f->tempo;
-    write_log(f, FINISHED);
+    f->state = FINISHED;
+    write_log(f);
     return 0;
 }
 
@@ -123,15 +158,14 @@ int divide_command(char *command, char **str)
     return i;
 }
 
-
-
 /*
 Função destinada a executar encadeadamente os comandos 
 recebidos através da struct FUNCTION.
 */
 int executa(FUNCTION f)
 {
-    write_log(f, RUNNING);
+    f->state = RUNNING;
+    write_log(f);
 
     int pipeAnt = STDIN_FILENO;
     int proxPipe[2];
@@ -165,6 +199,9 @@ int executa(FUNCTION f)
 
             divide_command((f->commands)[i].command, command_divided);
             (f->commands)[i].state = RUNNING;
+            (f->commands)[i].pid = getpid();
+            re_write_function(f);
+        
 
             alarm(tmp_exec_MAX);
             execvp(command_divided[0], command_divided);
@@ -193,11 +230,11 @@ int list(int pid_cliente)
     char pid_string[32];
     sprintf(pid_string, "%d", pid_cliente);
     char nome_pipe[64] = "pipe";
-    strcat(nome_pipe,pid_string);
+    strcat(nome_pipe, pid_string);
 
-    printf("nome do pipe: %s \n",nome_pipe);
+    printf("nome do pipe: %s \n", nome_pipe);
 
-    printf("Pedido de listar cliente: %d\n",pid_cliente);
+    printf("Pedido de listar cliente: %d\n", pid_cliente);
 
     int fd;
     if ((fd = open(LOG, O_RDONLY | O_CREAT, 0644)) < 0)
@@ -209,42 +246,89 @@ int list(int pid_cliente)
 
     //abrir o pipe com o cliente
     int out = open(nome_pipe, O_WRONLY);
-	if (out < 0) {
-		perror("Client offline");
-		return -1;
-	}
-
+    if (out < 0)
+    {
+        perror("Client offline");
+        return -1;
+    }
 
     int bytes_read;
     for (int p = 1; (bytes_read = read(fd, f, sizeof(struct function))) > 0; p++)
     {
-        if ( f->type == EXECUTAR && f->state == RUNNING)
-        {   
-            
-            write(out,"#",1);
-            char string[32];
+        if (f->type == EXECUTAR && f->state == RUNNING)
+        {
+
+            write(out, "#", 1);
+            char string[32] = "";
             sprintf(string, "%d", p);
-            write(out,string,sizeof string);
-            write(out,": ",2);
+            write(out, string, sizeof string);
+            write(out, ": ", 2);
             //printf("#%d: ",p);
             //printf("executar \"");
             for (int i = 0; i < f->commands_number; i++)
             {
-                write(out,(f->commands[i]).command,COMMAND_LENGTH_MAX);
+                write(out, (f->commands[i]).command, COMMAND_LENGTH_MAX);
                 //printf("%s",(f->commands[i]).command);
-                if(i < f->commands_number-1){
-                    write(out,"|",1);
+                if (i < f->commands_number - 1)
+                {
+                    write(out, "|", 1);
                     //printf("|");
                 }
             }
-            write(out,"\n",1);
+            write(out, "\n", 1);
             //printf("\n");
         }
     }
-    write(out,"stop",4);
+
+    sleep(1);
+    write(out, "EOF", 3);
     close(fd);
     close(out);
     return 0;
+}
+
+/*
+Função dedicad à funcionalidade terminar
+*/
+int term(int number)
+{
+    int fd;
+    FUNCTION f = malloc(sizeof(struct function));
+    if ((fd = open(LOG, O_RDWR | O_CREAT, 0644)) < 0)
+    {
+        perror("error open log");
+        return -1;
+    }
+
+
+
+    int res;
+    if ((res = lseek(fd, (number - 1) * sizeof(struct function), SEEK_SET)) < 0)
+    {
+        perror("erro ao encontrar a tarefa");
+        close(fd);
+        return -1;
+    }
+    
+
+    int rd;
+    if ((rd = read(fd, f, sizeof(struct function))) < 0)
+    {
+        perror("error on read");
+        close(fd);
+        return -1;
+    }
+
+    int pid = f->pid;
+    printf("qual é o pid deste pokemon? -> %d\n",(f->commands)[0].pid);
+    printf("FUCKING COMANDO: %s\n",(f->commands)[0].command);
+    printf("numero do processoa a terminar%d\n",pid);
+    kill((f->commands)[0].pid, SIGTERM);
+    kill(pid, SIGTERM);
+    close(fd);
+    free(f);
+
+    return 1;
 }
 
 int main(int argc, char **argv)
@@ -279,6 +363,7 @@ int main(int argc, char **argv)
             {
                 if (fork() == 0)
                 {
+                    f->pid = getpid();
                     executa(f);
                     _exit(1);
                 }
@@ -294,6 +379,10 @@ int main(int argc, char **argv)
             else if (f->type == LISTAR)
             {
                 list(f->client);
+            }
+            else if (f->type == TERMINAR)
+            {
+                term(f->tarefa);
             }
         }
         free(f);

@@ -52,6 +52,8 @@ Estrutura para um comando executar
 struct command{
 	//estado de cada comando na tarefa
 	int state;
+	//pid do comando
+	int pid;
 	char command[COMMAND_LENGTH_MAX];
 };
 
@@ -64,7 +66,10 @@ typedef struct command *COMMAND;
 Estrutura usada para uma funcionalidade no sistema
 */
 struct function{
+	//pid do cliente que envia
 	pid_t client;
+	//pid da tarefa
+	int pid;
 	int type;
    	int tempo;
 	int commands_number;

@@ -5,15 +5,29 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
 #include "argus.h"
 
-void getpipe(char* pipe){
+void getpipe(char *pipe)
+{
     int pid = getpid();
     char pid_string[32];
     sprintf(pid_string, "%d", pid);
     char fifo[64] = "pipe";
-    strcat(fifo,pid_string);
-    strcpy(pipe,fifo);
+    strcat(fifo, pid_string);
+    strcpy(pipe, fifo);
+}
+
+/*
+Função que "apanha" os sigint's recebidos e fecha o cliente dando unlink ao pipe.
+*/
+void sigint_handler(int signum)
+{
+    puts("Closing client...");
+    char fifo[64] = "";
+    getpipe(fifo);
+    unlink(fifo);
+    _exit(0);
 }
 
 /*
@@ -321,12 +335,13 @@ void tmp_inat(char *args)
     free(new_function);
 }
 
-int list(){
+int list()
+{
     FUNCTION new_function = malloc(sizeof(struct function));
     new_function->type = LISTAR;
     new_function->client = getpid();
     send(new_function);
-    
+
     char pipe[64];
     getpipe(pipe);
     int in;
@@ -337,19 +352,34 @@ int list(){
     }
 
     char buf[512];
-	int n;
-	while (1) {
-		n = read(in, buf, 512);
-		if (n <= 0);
-		else if (strncmp(buf, "stop", 4) == 0)
-			break;
-		else {
-			write(1, buf, n);
-		}
-	}
+    int n;
+    while (1)
+    {
+        n = read(in, buf, 512);
+        if (n < 0)
+            ;
+        else if (strncmp(buf, "EOF", 3) == 0)
+            break;
+        else
+        {
+            write(1, buf, n);
+        }
+    }
 
     free(new_function);
     close(in);
+    return 1;
+}
+
+/*
+*/
+int term(int number)
+{
+    FUNCTION f = malloc(sizeof(struct function));
+    f->type = TERMINAR;
+    f->tarefa = number;
+    send(f);
+    free(f);
     return 1;
 }
 
@@ -391,7 +421,7 @@ int shell()
             else if (!strcmp(args[0], "terminar") && args[1])
             {
                 //kill
-                myprint("term\n");
+                term(atoi(args[1]));
             }
             else if (!strcmp(args[0], "historico"))
             {
@@ -425,7 +455,7 @@ int shell()
 
 int main(int argc, char **argv)
 {
-
+    signal(SIGINT, sigint_handler);
     //criar o fifo para receber a informação
     char pipe[64];
     getpipe(pipe);
@@ -460,7 +490,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[1], "-t") && argv[2] && !argv[3])
         {
             //kill
-            myprint("term\n");
+            term(atoi(argv[2]));
         }
         else if (!strcmp(argv[1], "-r") && !argv[2])
         {
