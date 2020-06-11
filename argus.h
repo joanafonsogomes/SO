@@ -16,9 +16,10 @@ Definições dos nomes dos ficheiros usados
 #define LOG "log"
 
 /*
-Definições do servidor
+Definições dos pipes usados
 */
-#define SERVER_PIPE "pipe"
+#define SERVER_PIPE "pipe1"
+#define CLIENT_PIPE "pipe"
 
 /*
 Definições do tipo de execução do problema

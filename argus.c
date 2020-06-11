@@ -7,6 +7,15 @@
 #include <fcntl.h>
 #include "argus.h"
 
+void getpipe(char* pipe){
+    int pid = getpid();
+    char pid_string[32];
+    sprintf(pid_string, "%d", pid);
+    char fifo[64] = "pipe";
+    strcat(fifo,pid_string);
+    strcpy(pipe,fifo);
+}
+
 /*
 Função similar ao puts do C que imprime para o ecrã (usando a chamada ao sistema write)
 o char* passado como argumento.
@@ -312,12 +321,36 @@ void tmp_inat(char *args)
     free(new_function);
 }
 
-void list(){
+int list(){
     FUNCTION new_function = malloc(sizeof(struct function));
     new_function->type = LISTAR;
     new_function->client = getpid();
     send(new_function);
+    
+    char pipe[64];
+    getpipe(pipe);
+    int in;
+    if ((in = open(pipe, O_RDONLY)) < 0)
+    {
+        perror("open() in");
+        return -1;
+    }
+
+    char buf[512];
+	int n;
+	while (1) {
+		n = read(in, buf, 512);
+		if (n <= 0);
+		else if (strncmp(buf, "stop", 4) == 0)
+			break;
+		else {
+			write(1, buf, n);
+		}
+	}
+
     free(new_function);
+    close(in);
+    return 1;
 }
 
 /*
@@ -392,6 +425,12 @@ int shell()
 
 int main(int argc, char **argv)
 {
+
+    //criar o fifo para receber a informação
+    char pipe[64];
+    getpipe(pipe);
+    mkfifo(pipe, 0666);
+
     if (argc == 1)
     {
         return shell();

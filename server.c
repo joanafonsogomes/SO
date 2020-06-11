@@ -189,7 +189,16 @@ Listar
 */
 int list(int pid_cliente)
 {
+    //encontrar o pipe pretendido (pipe+pid do cliente)
+    char pid_string[32];
+    sprintf(pid_string, "%d", pid_cliente);
+    char nome_pipe[64] = "pipe";
+    strcat(nome_pipe,pid_string);
+
+    printf("nome do pipe: %s \n",nome_pipe);
+
     printf("Pedido de listar cliente: %d\n",pid_cliente);
+
     int fd;
     if ((fd = open(LOG, O_RDONLY | O_CREAT, 0644)) < 0)
     {
@@ -198,24 +207,43 @@ int list(int pid_cliente)
     }
     FUNCTION f = malloc(sizeof(struct function));
 
+    //abrir o pipe com o cliente
+    int out = open(nome_pipe, O_WRONLY);
+	if (out < 0) {
+		perror("Client offline");
+		return -1;
+	}
+
+
     int bytes_read;
     for (int p = 1; (bytes_read = read(fd, f, sizeof(struct function))) > 0; p++)
     {
         if ( f->type == EXECUTAR && f->state == RUNNING)
-        {
-            printf("#%d: ",p);
+        {   
+            
+            write(out,"#",1);
+            char string[32];
+            sprintf(string, "%d", p);
+            write(out,string,sizeof string);
+            write(out,": ",2);
+            //printf("#%d: ",p);
             //printf("executar \"");
             for (int i = 0; i < f->commands_number; i++)
             {
-                printf("%s",(f->commands[i]).command);
+                write(out,(f->commands[i]).command,COMMAND_LENGTH_MAX);
+                //printf("%s",(f->commands[i]).command);
                 if(i < f->commands_number-1){
-                    printf("|");
+                    write(out,"|",1);
+                    //printf("|");
                 }
             }
-            printf("\n");
+            write(out,"\n",1);
+            //printf("\n");
         }
     }
+    write(out,"stop",4);
     close(fd);
+    close(out);
     return 0;
 }
 
@@ -232,7 +260,7 @@ int main(int argc, char **argv)
     int in = open(SERVER_PIPE, O_RDONLY);
     if (in < 0)
     {
-        perror("open() in");
+        perror("open fifo");
         return -1;
     }
 
