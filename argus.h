@@ -7,6 +7,7 @@ Definições de estados de uma tarefa
 #define INITIAL  0
 #define RUNNING  1
 #define FINISHED 2
+#define KILLED   3
 
 /*
 Definições dos nomes dos ficheiros usados
@@ -48,6 +49,7 @@ Definições dos tamanho maiximos dos diferentes arrays
 Estrutura para um comando executar
 */
 struct command{
+	//estado de cada comando na tarefa
 	int state;
 	char command[COMMAND_LENGTH_MAX];
 };
@@ -61,9 +63,12 @@ typedef struct command *COMMAND;
 Estrutura usada para uma funcionalidade no sistema
 */
 struct function{
+	pid_t client;
 	int type;
    	int tempo;
 	int commands_number;
+	//estado da tarefa
+	int state;
    	struct command commands[COMMAND_NUMBER_MAX];
    	int tarefa;
 };

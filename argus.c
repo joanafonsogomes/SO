@@ -96,6 +96,7 @@ int send(FUNCTION new_function)
         puts("Server's offline");
         return -1;
     }
+    new_function->client = getpid();
 
     int res;
     if ((res = write(out, new_function, sizeof(struct function))) < 0)
@@ -311,6 +312,14 @@ void tmp_inat(char *args)
     free(new_function);
 }
 
+void list(){
+    FUNCTION new_function = malloc(sizeof(struct function));
+    new_function->type = LISTAR;
+    new_function->client = getpid();
+    send(new_function);
+    free(new_function);
+}
+
 /*
 Função para executar as funcionalidades em modo shell
 */
@@ -344,7 +353,7 @@ int shell()
             else if (!strcmp(args[0], "listar") && !args[1])
             {
                 //list
-                myprint("list\n");
+                list();
             }
             else if (!strcmp(args[0], "terminar") && args[1])
             {
@@ -407,7 +416,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[1], "-l") && !argv[2])
         {
             //list))
-            myprint("list\n");
+            list();
         }
         else if (!strcmp(argv[1], "-t") && argv[2] && !argv[3])
         {

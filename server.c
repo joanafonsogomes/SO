@@ -45,6 +45,50 @@ void sig_alarm_handler(int signum)
 }
 */
 
+int write_log(FUNCTION f, int new_state)
+{
+    f->state = new_state;
+    int fd;
+    if ((fd = open(LOG, O_WRONLY | O_CREAT, 0644)) < 0)
+    {
+        perror("error open log");
+        return -1;
+    }
+    lseek(fd, 0, SEEK_END);
+    int w;
+    if ((w = write(fd, f, sizeof(struct function))) < 0)
+    {
+        perror("error writing log");
+        return -1;
+    }
+    close(fd);
+    return 1;
+}
+
+/*
+Função que atribui à variavel 'tmp_inat_MAX' o tempo máximo 
+de inactividade de comunicação num pipe anónimo
+*/
+int temp_inat(FUNCTION f)
+{
+    printf("Tempo de inatividade num pipe: %d\n", f->tempo);
+    tmp_inat_MAX = f->tempo;
+    write_log(f, FINISHED);
+    return 0;
+}
+
+/*
+Função que atribui à variavel 'tmp_exec_MAX' o tempo máximo 
+de execução de uma tarefa.
+*/
+int tempo_exec(FUNCTION f)
+{
+    printf("Tempo de execução de uma tarefa: %d\n", f->tempo);
+    tmp_exec_MAX = f->tempo;
+    write_log(f, FINISHED);
+    return 0;
+}
+
 /*
 Função auxiliar que conta quantos espaços tem uma string
 */
@@ -79,12 +123,16 @@ int divide_command(char *command, char **str)
     return i;
 }
 
+
+
 /*
 Função destinada a executar encadeadamente os comandos 
 recebidos através da struct FUNCTION.
 */
 int executa(FUNCTION f)
 {
+    write_log(f, RUNNING);
+
     int pipeAnt = STDIN_FILENO;
     int proxPipe[2];
     int n = f->commands_number;
@@ -112,14 +160,12 @@ int executa(FUNCTION f)
                 close(pipeAnt);
             }
 
-            printf("%s\n", (f->commands)[i].command);
             int count = words_count((f->commands)[i].command);
             char **command_divided = malloc((count + 1) * sizeof(char *));
 
             divide_command((f->commands)[i].command, command_divided);
-
             (f->commands)[i].state = RUNNING;
-            
+
             alarm(tmp_exec_MAX);
             execvp(command_divided[0], command_divided);
 
@@ -139,24 +185,37 @@ int executa(FUNCTION f)
 }
 
 /*
-Função que atribui à variavel 'tmp_exec_MAX' o tempo máximo 
-de execução de uma tarefa.
+Listar
 */
-int tempo_exec(FUNCTION f)
+int list(int pid_cliente)
 {
-    printf("Tempo de execução de uma tarefa: %d\n", f->tempo);
-    tmp_exec_MAX = f->tempo;
-    return 0;
-}
+    printf("Pedido de listar cliente: %d\n",pid_cliente);
+    int fd;
+    if ((fd = open(LOG, O_RDONLY | O_CREAT, 0644)) < 0)
+    {
+        perror("error open log");
+        return -1;
+    }
+    FUNCTION f = malloc(sizeof(struct function));
 
-/*
-Função que atribui à variavel 'tmp_inat_MAX' o tempo máximo 
-de inactividade de comunicação num pipe anónimo
-*/
-int temp_inat(FUNCTION f)
-{
-    printf("Tempo de inatividade num pipe: %d\n", f->tempo);
-    tmp_inat_MAX = f->tempo;
+    int bytes_read;
+    for (int p = 1; (bytes_read = read(fd, f, sizeof(struct function))) > 0; p++)
+    {
+        if ( f->type == EXECUTAR && f->state == RUNNING)
+        {
+            printf("#%d: ",p);
+            //printf("executar \"");
+            for (int i = 0; i < f->commands_number; i++)
+            {
+                printf("%s",(f->commands[i]).command);
+                if(i < f->commands_number-1){
+                    printf("|");
+                }
+            }
+            printf("\n");
+        }
+    }
+    close(fd);
     return 0;
 }
 
@@ -177,14 +236,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    puts("Opening file...");
-    int log = open(LOG, O_CREAT | O_WRONLY | O_APPEND, 0640);
-    if (log < 0)
-    {
-        perror("open() log");
-        return -1;
-    }
-
     puts("Reading...");
     int bytes_read;
     while (1)
@@ -198,7 +249,11 @@ int main(int argc, char **argv)
         {
             if (f->type == EXECUTAR)
             {
-                executa(f);
+                if (fork() == 0)
+                {
+                    executa(f);
+                    _exit(1);
+                }
             }
             else if (f->type == TEMPO_EXECUCAO)
             {
@@ -208,13 +263,15 @@ int main(int argc, char **argv)
             {
                 temp_inat(f);
             }
-            write(log, f, sizeof(struct function));
+            else if (f->type == LISTAR)
+            {
+                list(f->client);
+            }
         }
         free(f);
     }
 
     close(in);
-    close(log);
 
     return 0;
 }
