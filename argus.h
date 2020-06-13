@@ -8,17 +8,21 @@ Definições de estados de uma tarefa
 #define RUNNING  1
 #define FINISHED 2
 #define KILLED   3
+#define TIMEEXEC 4
+#define TIMEINAC 5
 
 /*
 Definições dos nomes dos ficheiros usados
 */
 #define COMMAND_FILE "aux"
 #define LOG "log"
+#define OUTPUT_FILE "output"
+#define OUTPUT_INDEX "output.idx"
 
 /*
 Definições dos pipes usados
 */
-#define SERVER_PIPE "pipe1"
+#define SERVER_PIPE "server_pipe"
 #define CLIENT_PIPE "pipe"
 
 /*
@@ -66,6 +70,8 @@ typedef struct command *COMMAND;
 Estrutura usada para uma funcionalidade no sistema
 */
 struct function{
+	//numero da funcao
+	int number;
 	//pid do cliente que envia
 	pid_t client;
 	//pid da tarefa
@@ -77,9 +83,25 @@ struct function{
 	int state;
    	struct command commands[COMMAND_NUMBER_MAX];
    	int tarefa;
+	//linha para o comando output
+	int line;
 };
 
 typedef struct function *FUNCTION;
+
+/*
+Estrutura usada para indexação do output
+*/
+struct outputidx{
+	//offset do output
+	off_t offset;
+	//numero da função correspondente
+	int function_number;
+	//tamanho do output correspondente
+	int size;
+};
+
+typedef struct outputidx *IDX;
 
 
 #endif

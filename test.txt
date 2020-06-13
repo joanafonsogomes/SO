@@ -1,6 +1,20 @@
+tempo-execucao 5
 executar "sleep 3"
 executar "ls|wc"
+executar "sleep 3"
+executar "ls|wc"
+executar "sleep 3"
+executar "ls|wc"
+executar "sleep 3"
+executar "ls|wc"
+executar "sleep 3"
+executar "ls|wc"
+executar "sleep 3"
+executar "ls|wc"
+executar "sleep 3"
+executar "ls|wc"
+executar "sleep 3"
+executar "ls"
 executar "./teste.sh"
-
-
 ajuda
+exit

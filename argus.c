@@ -128,7 +128,7 @@ int send(FUNCTION new_function)
     };
 
     close(out);
-    return 0;
+    return 1;
 }
 
 /*
@@ -307,6 +307,20 @@ void exec(char *args, int i)
 {
     parse_arg(args, i);
     send_server_exec();
+
+    char pipe[64];
+    getpipe(pipe);
+    int in;
+    if ((in = open(pipe, O_RDONLY)) < 0)
+    {
+        perror("open() in");
+    }
+
+    char buff[512] = "";
+    readln(in, buff, 512);
+    write(1, buff, 512);
+
+    close(in);
 }
 
 /*
@@ -383,6 +397,52 @@ int term(int number)
     return 1;
 }
 
+int hist()
+{
+    FUNCTION new_function = malloc(sizeof(struct function));
+    new_function->type = HISTORICO;
+    new_function->client = getpid();
+    send(new_function);
+
+    char pipe[64];
+    getpipe(pipe);
+    int in;
+    if ((in = open(pipe, O_RDONLY)) < 0)
+    {
+        perror("open() in");
+        return -1;
+    }
+
+    char buf[512];
+    int n;
+    while (1)
+    {
+        n = read(in, buf, 512);
+        if (n < 0)
+            ;
+        else if (strncmp(buf, "EOF", 3) == 0)
+            break;
+        else
+        {
+            write(1, buf, n);
+        }
+    }
+
+    free(new_function);
+    close(in);
+    return 1;
+}
+
+int output(int line)
+{
+    FUNCTION f = malloc(sizeof(struct function));
+    f->type = OUTPUT;
+    f->line = line;
+    send(f);
+    free(f);
+    return 1;
+}
+
 /*
 Função para executar as funcionalidades em modo shell
 */
@@ -426,14 +486,23 @@ int shell()
             else if (!strcmp(args[0], "historico"))
             {
                 //history
-                myprint("his\n");
+                hist();
+            }
+            else if (!strcmp(args[0], "output") && args[1])
+            {
+                //history
+                output(atoi(args[1]));
+            }
+            else if (!strcmp(args[0], "exit"))
+            {
+                break;
             }
             else if (!strcmp(args[0], "ajuda"))
             {
 
                 myprint("\e[1mtempo-inactividade\e[0m segs\n");
                 myprint("\e[1mtempo-execucao\e[0m segs\n");
-                myprint("\e[1mexecutar\e[0m p1 | p2 ... | pn\n");
+                myprint("\e[1mexecutar\e[0m \"p1 | p2 ... | pn\"\n");
                 myprint("\e[1mlistar\e[0m\n");
                 myprint("\e[1mterminar\e[0m tarefa\n");
                 myprint("\e[1mhistorico\e[0m\n");
@@ -470,12 +539,12 @@ int main(int argc, char **argv)
         if (!strcmp(argv[1], "-i") && argv[2] && !argv[3])
         {
             //tempo-inatividade
-            myprint("inac\n");
+            tmp_inat(argv[2]);
         }
         else if (!strcmp(argv[1], "-m") && argv[2] && !argv[3])
         {
             //tempo execucao
-            myprint("texec\n");
+            tmp_exec(argv[2]);
         }
         else if (!strcmp(argv[1], "-e") && argv[2] && !argv[3])
         {
@@ -495,7 +564,12 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[1], "-r") && !argv[2])
         {
             //history
-            myprint("his\n");
+            hist();
+        }
+        else if (!strcmp(argv[1], "-o") && argv[2] && !argv[3])
+        {
+            //history
+            output(atoi(argv[2]));
         }
         else if (!strcmp(argv[1], "-h"))
         {
@@ -503,17 +577,21 @@ int main(int argc, char **argv)
             myprint("\e[1margus\e[0m segs\n");
             myprint("\e[1m-i\e[0m segs\n");
             myprint("\e[1m-m\e[0m segs\n");
-            myprint("\e[1m-e\e[0m p1 | p2 ... | pn\n");
-            myprint("\e[1m-l\e[0m\n");
+            myprint("\e[1m-e\e[0m \"p1 | p2 ... | pn\"\n");
+            myprint("\e[1m-l\e[0m listar\n");
             myprint("\e[1m-t\e[0m tarefa\n");
-            myprint("\e[1m-r\e[0m\n");
+            myprint("\e[1m-r\e[0m histórico\n");
         }
         else
         {
-            myprint("\e[1mComando invalido! Insira \e[4majuda\e[24m para obter ajuda.\e[0m");
+            myprint("\e[1mComando invalido! Insira \e[4m-h\e[24m para obter ajuda.\e[0m");
         }
         printf("\n");
     }
+
+    char fifo[64] = "";
+    getpipe(fifo);
+    unlink(fifo);
 
     return 0;
 }
