@@ -15,9 +15,9 @@ Definições de estados de uma tarefa
 Definições dos nomes dos ficheiros usados
 */
 #define COMMAND_FILE "aux"
-#define LOG "log"
-#define OUTPUT_FILE "output"
-#define OUTPUT_INDEX "output.idx"
+#define LOG "historico"
+#define OUTPUT_FILE "log"
+#define OUTPUT_INDEX "log.idx"
 
 /*
 Definições dos pipes usados
@@ -98,7 +98,7 @@ struct outputidx{
 	//numero da função correspondente
 	int function_number;
 	//tamanho do output correspondente
-	int size;
+	int size ;
 };
 
 typedef struct outputidx *IDX;

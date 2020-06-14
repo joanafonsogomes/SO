@@ -440,6 +440,33 @@ int output(int line)
     f->line = line;
     send(f);
     free(f);
+
+    char pipe[64];
+    getpipe(pipe);
+    int in;
+    if ((in = open(pipe, O_RDONLY)) < 0)
+    {
+        perror("open() in");
+        return -1;
+    }
+
+    char buf[512];
+    int n;
+    while (1)
+    {
+        n = read(in, buf, 512);
+        if (n < 0)
+            ;
+        else if (strncmp(buf, "EOF", 3) == 0)
+            break;
+        else
+        {
+            write(1, buf, n);
+        }
+    }
+
+    close(in);
+
     return 1;
 }
 

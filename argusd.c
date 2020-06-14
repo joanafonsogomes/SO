@@ -64,6 +64,7 @@ int re_write_function(FUNCTION new_function)
         return -1;
     }
 
+    lseek(fd, (new_function->number - 1) * sizeof(struct function), SEEK_CUR);
     int w;
     //int res = -1;
     int bytes_read;
@@ -72,7 +73,6 @@ int re_write_function(FUNCTION new_function)
     {
         if (f->pid == new_function->pid)
         {
-            printf("comando iniciado na tarefa %d\n", f->pid);
             lseek(fd, -sizeof(struct function), SEEK_CUR);
             if ((w = write(fd, new_function, sizeof(struct function))) < 0)
             {
@@ -81,7 +81,6 @@ int re_write_function(FUNCTION new_function)
             };
         }
     }
-    puts("algo mudou");
     close(fd);
     return 1;
 }
@@ -101,7 +100,6 @@ void sigALRM_handler_exec(int signum)
         }
     }
 
-    printf("number offffff:%d", f->number);
     f->state = TIMEEXEC;
     re_write_function(f);
     kill(pid, SIGTERM);
@@ -113,6 +111,19 @@ Função que "apanha" os sigint's recebidos e fecha o servidor dando unlink ao p
 */
 void sigALRM_handler_inac(int signum)
 {
+    FUNCTION f = find_function(getpid());
+    int pid = f->pid;
+    for (int i = 0; i < f->commands_number; i++)
+    {
+        if ((f->commands)[i].state == RUNNING && (f->commands)[i].pid)
+        {
+            kill((f->commands)[i].pid, SIGTERM);
+        }
+    }
+
+    f->state = TIMEINAC;
+    re_write_function(f);
+    kill(pid, SIGTERM);
     _exit(TIMEINAC);
 }
 
@@ -160,8 +171,6 @@ int write_log(FUNCTION f)
     close(fd);
     return number;
 }
-
-
 
 /*
 Função que atribui à variavel 'tmp_inat_MAX' o tempo máximo 
@@ -224,6 +233,60 @@ int divide_command(char *command, char **str)
     return i;
 }
 
+int redirect_output(int function_number)
+{
+    int fd;
+    fd = open(OUTPUT_FILE, O_RDWR | O_CREAT, 0644);
+    off_t old_offset = lseek(fd, 0, SEEK_END);
+
+    int fdidx;
+    fdidx = open(OUTPUT_INDEX, O_RDWR | O_CREAT, 0644);
+    lseek(fdidx, 0, SEEK_END);
+
+    IDX new_index = malloc(sizeof(struct outputidx));
+    new_index->offset = old_offset;
+    new_index->function_number = function_number;
+    new_index->size = -1;
+
+    // fecha o stdout e redireciona para o ouput
+    close(STDOUT_FILENO);
+    int d;
+    if ((d = dup(fd)) < 0)
+    {
+        perror("output erorr");
+        exit(d);
+    }
+    close(fd);
+    write(fdidx, new_index, sizeof(struct outputidx));
+    close(fdidx);
+
+    return 1;
+}
+
+int end_output(int function_number)
+{
+    int fd;
+    fd = open(OUTPUT_FILE, O_RDWR | O_CREAT, 0644);
+    off_t new_offset = lseek(fd, 0, SEEK_END);
+    close(fd);
+    int fdidx;
+    fdidx = open(OUTPUT_INDEX, O_RDWR | O_CREAT, 0644);
+
+    IDX new_index = malloc(sizeof(struct outputidx));
+    int bytes_read;
+    while ((bytes_read = read(fdidx, new_index, sizeof(struct outputidx))) > 0)
+    {
+        if (new_index->function_number == function_number)
+        {
+            new_index->size = new_offset - new_index->offset;
+            lseek(fdidx, -(sizeof(struct outputidx)), SEEK_CUR);
+            write(fdidx, new_index, sizeof(struct outputidx));
+        }
+    }
+    close(fdidx);
+    return 1;
+}
+
 /*
 Função destinada a executar encadeadamente os comandos 
 recebidos através da struct FUNCTION.
@@ -231,13 +294,16 @@ recebidos através da struct FUNCTION.
 int executa(FUNCTION f)
 {
     if (fork() == 0)
-    {
+    {   
         int status;
-        if (fork() == 0)
+        int pid;
+        if ((pid = fork()) == 0)
         {
             f->state = RUNNING;
             f->pid = getpid();
+            pid = f->pid;
             f->number = write_log(f);
+
             int pipeAnt = STDIN_FILENO;
             int proxPipe[2];
             int n = f->commands_number;
@@ -253,12 +319,6 @@ int executa(FUNCTION f)
                     pipe(proxPipe);
                 if (fork() == 0)
                 {
-                    printf("pid:%d\n", f->pid);
-                    if (f->pid <= 1)
-                    {
-                        printf("pid:%d\n", f->pid);
-                        _exit(0);
-                    }
                     // criar a ponte entre os comandos
 
                     //não cria no ultimo o proximo pipe
@@ -275,7 +335,11 @@ int executa(FUNCTION f)
                         dup2(pipeAnt, STDIN_FILENO);
                         close(pipeAnt);
                     }
-
+                    //redirecionamento para o ficheiro output (por fazer)
+                    if (i == n - 1)
+                    {
+                        redirect_output(f->number);
+                    }
                     int count = words_count((f->commands)[i].command);
                     char **command_divided = malloc((count + 1) * sizeof(char *));
 
@@ -283,8 +347,6 @@ int executa(FUNCTION f)
                     (f->commands)[i].state = RUNNING;
                     (f->commands)[i].pid = getpid();
                     re_write_function(f);
-
-                    //alarm(tmp_exec_MAX);
 
                     int exec;
                     if ((exec = execvp(command_divided[0], command_divided)) < 0)
@@ -302,21 +364,23 @@ int executa(FUNCTION f)
                 if (i > 0)
                     close(pipeAnt);
                 pipeAnt = proxPipe[IN];
-
-                //redirecionamento para o ficheiro output (por fazer)
             }
             _exit(FINISHED);
         }
         wait(&status);
         if (WIFEXITED(status))
-            printf("processo terminou com status %d\n", WEXITSTATUS(status));
-        else
-            printf("processo terminou\n");
-        printf("status %d\n", status);
-        f->state = FINISHED;
-        puts("aqui");
-        re_write_function(f);
-        _exit(1);
+        {
+            if (WEXITSTATUS(status) == 2)
+            {
+                alarm(0);
+                FUNCTION new = find_function(pid);
+                new->state = FINISHED;
+                re_write_function(new);
+                end_output(new->number);
+            }
+            _exit(1);
+        }
+        free(f);
     }
     return 0;
 }
@@ -332,8 +396,6 @@ int list(int pid_cliente)
     sprintf(pid_string, "%d", pid_cliente);
     char nome_pipe[64] = "pipe";
     strcat(nome_pipe, pid_string);
-
-    printf("nome do pipe: %s \n", nome_pipe);
 
     printf("Pedido de listar cliente: %d\n", pid_cliente);
 
@@ -531,6 +593,7 @@ OUTPUT
 */
 int output(int pid_cliente, int line)
 {
+    printf("Pedido para aceder o output da tarefa: #%d\n", line);
     //encontrar o pipe pretendido (pipe+pid do cliente)
     char pid_string[32];
     sprintf(pid_string, "%d", pid_cliente);
@@ -573,17 +636,25 @@ int output(int pid_cliente, int line)
     if (find == 1)
     {
         //buscar o output para o indice encontrado
+        
         int fdout;
         if ((fdout = open(OUTPUT_FILE, O_RDONLY, 0644)) < 0)
         {
             perror("error open output");
             return -1;
         }
+        printf("fnumber:%d\n", index->function_number);
+        printf("off size:%ld\n", index->offset);
         lseek(fdout, index->offset, SEEK_SET);
+
         size = index->size;
-        char text[size];
-        read(fdout, text, index->size);
-        write(out, text, size);
+        printf("ouput size:%d\n", size);
+        if (size > 0)
+        {
+            char text[size];
+            read(fdout, text, index->size);
+            write(out, text, size);
+        }
     }
     else
     {
@@ -649,8 +720,14 @@ int main(int argc, char **argv)
             {
                 historico(f->client);
             }
+            else if (f->type == OUTPUT)
+            {
+                output(f->client, f->line);
+            }
+            
         }
         free(f);
+        
     }
 
     close(in);

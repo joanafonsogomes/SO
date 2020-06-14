@@ -1,8 +1,8 @@
 CFLAGS=-Wall
-FICHEIROS=Makefile 
+FICHEIROS=Makefile argus.c argus.h argusd.c
 EXECUTAVEL=argus
 SERVIDOR=argusd
-APAGAR=log aux pipe
+APAGAR=log log.idx historico aux pipe
 CC=gcc
 
 all: argus.o argusd.o 

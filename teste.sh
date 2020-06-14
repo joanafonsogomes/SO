@@ -1,10 +1,10 @@
 #!/bin/bash
-while [ : ]
-do
-        #clear
-        # Get the system time
-        now="$(date +"%r")"
-        # Show main - menu, server name and time
-        echo "time is $HOSTNAME - $now"
-        sleep 1
-done
+./argus -m 5
+./argus -e "ls|wc"
+./argus -l
+./argus -e "./time.sh"
+./argus -l
+./argus -h
+sleep 5
+./argus -r
+exit
