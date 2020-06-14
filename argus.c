@@ -533,6 +533,7 @@ int shell()
                 myprint("\e[1mlistar\e[0m\n");
                 myprint("\e[1mterminar\e[0m tarefa\n");
                 myprint("\e[1mhistorico\e[0m\n");
+                myprint("\e[1moutput\e[0m tarefa\n");
             }
             else
             {
@@ -601,17 +602,18 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[1], "-h"))
         {
             //help))
-            myprint("\e[1margus\e[0m segs\n");
-            myprint("\e[1m-i\e[0m segs\n");
-            myprint("\e[1m-m\e[0m segs\n");
-            myprint("\e[1m-e\e[0m \"p1 | p2 ... | pn\"\n");
-            myprint("\e[1m-l\e[0m listar\n");
-            myprint("\e[1m-t\e[0m tarefa\n");
-            myprint("\e[1m-r\e[0m histórico\n");
+            myprint("\e[4m\e[1mAJUDA\e[0m\e[24m\n\n");
+            myprint("Tempo de inatividade \n     ./argus \e[1m-i\e[0m segs\n\n");
+            myprint("Tempo de execução \n     ./argus \e[1m-m\e[0m segs\n\n");
+            myprint("Executar\n      ./argus \e[1m-e\e[0m \"p1 | p2 ... | pn\"\n\n");
+            myprint("Listar\n     ./argus \e[1m-l\e[0m\n\n");
+            myprint("Terminar uma tarefa\n     ./argus \e[1m-t\e[0m tarefa\n\n");
+            myprint("Histório\n     ./argus \e[1m-r\e[0m \n\n");
+            myprint("Output de uma tarefa\n     ./argus \e[1m-o\e[0m tarefa\n");
         }
         else
         {
-            myprint("\e[1mComando invalido! Insira \e[4m-h\e[24m para obter ajuda.\e[0m");
+            myprint("\e[1mComando invalido! Insira ./argus \e[4m-h\e[24m para obter ajuda.\e[0m");
         }
         printf("\n");
     }

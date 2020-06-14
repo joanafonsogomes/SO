@@ -54,6 +54,61 @@ FUNCTION find_function(int pid)
     return f;
 }
 
+int redirect_output(int function_number)
+{
+    int fd;
+    fd = open(OUTPUT_FILE, O_RDWR | O_CREAT, 0644);
+    off_t old_offset = lseek(fd, 0, SEEK_END);
+
+    int fdidx;
+    fdidx = open(OUTPUT_INDEX, O_RDWR | O_CREAT, 0644);
+    lseek(fdidx, 0, SEEK_END);
+
+    IDX new_index = malloc(sizeof(struct outputidx));
+    new_index->offset = old_offset;
+    new_index->function_number = function_number;
+    new_index->size = -1;
+
+    // fecha o stdout e redireciona para o ouput
+    close(STDOUT_FILENO);
+    int d;
+    if ((d = dup(fd)) < 0)
+    {
+        perror("output erorr");
+        exit(d);
+    }
+    close(fd);
+    write(fdidx, new_index, sizeof(struct outputidx));
+    close(fdidx);
+
+    return 1;
+}
+
+int end_output(int function_number)
+{
+    int fd;
+    fd = open(OUTPUT_FILE, O_RDWR | O_CREAT, 0644);
+    off_t new_offset = lseek(fd, 0, SEEK_END);
+    close(fd);
+    int fdidx;
+    fdidx = open(OUTPUT_INDEX, O_RDWR | O_CREAT, 0644);
+
+    IDX new_index = malloc(sizeof(struct outputidx));
+    int bytes_read;
+    while ((bytes_read = read(fdidx, new_index, sizeof(struct outputidx))) > 0)
+    {
+        if (new_index->function_number == function_number)
+        {
+            new_index->size = new_offset - new_index->offset;
+            lseek(fdidx, -(sizeof(struct outputidx)), SEEK_CUR);
+            write(fdidx, new_index, sizeof(struct outputidx));
+        }
+    }
+    close(fdidx);
+    return 1;
+}
+
+
 int re_write_function(FUNCTION new_function)
 {
     int fd;
@@ -81,6 +136,7 @@ int re_write_function(FUNCTION new_function)
             };
         }
     }
+    free(f);
     close(fd);
     return 1;
 }
@@ -102,6 +158,7 @@ void sigALRM_handler_exec(int signum)
 
     f->state = TIMEEXEC;
     re_write_function(f);
+    end_output(f->number);
     kill(pid, SIGTERM);
     _exit(TIMEEXEC);
 }
@@ -123,6 +180,7 @@ void sigALRM_handler_inac(int signum)
 
     f->state = TIMEINAC;
     re_write_function(f);
+    end_output(f->number);
     kill(pid, SIGTERM);
     _exit(TIMEINAC);
 }
@@ -171,6 +229,8 @@ int write_log(FUNCTION f)
     close(fd);
     return number;
 }
+
+
 
 /*
 Função que atribui à variavel 'tmp_inat_MAX' o tempo máximo 
@@ -233,59 +293,6 @@ int divide_command(char *command, char **str)
     return i;
 }
 
-int redirect_output(int function_number)
-{
-    int fd;
-    fd = open(OUTPUT_FILE, O_RDWR | O_CREAT, 0644);
-    off_t old_offset = lseek(fd, 0, SEEK_END);
-
-    int fdidx;
-    fdidx = open(OUTPUT_INDEX, O_RDWR | O_CREAT, 0644);
-    lseek(fdidx, 0, SEEK_END);
-
-    IDX new_index = malloc(sizeof(struct outputidx));
-    new_index->offset = old_offset;
-    new_index->function_number = function_number;
-    new_index->size = -1;
-
-    // fecha o stdout e redireciona para o ouput
-    close(STDOUT_FILENO);
-    int d;
-    if ((d = dup(fd)) < 0)
-    {
-        perror("output erorr");
-        exit(d);
-    }
-    close(fd);
-    write(fdidx, new_index, sizeof(struct outputidx));
-    close(fdidx);
-
-    return 1;
-}
-
-int end_output(int function_number)
-{
-    int fd;
-    fd = open(OUTPUT_FILE, O_RDWR | O_CREAT, 0644);
-    off_t new_offset = lseek(fd, 0, SEEK_END);
-    close(fd);
-    int fdidx;
-    fdidx = open(OUTPUT_INDEX, O_RDWR | O_CREAT, 0644);
-
-    IDX new_index = malloc(sizeof(struct outputidx));
-    int bytes_read;
-    while ((bytes_read = read(fdidx, new_index, sizeof(struct outputidx))) > 0)
-    {
-        if (new_index->function_number == function_number)
-        {
-            new_index->size = new_offset - new_index->offset;
-            lseek(fdidx, -(sizeof(struct outputidx)), SEEK_CUR);
-            write(fdidx, new_index, sizeof(struct outputidx));
-        }
-    }
-    close(fdidx);
-    return 1;
-}
 
 /*
 Função destinada a executar encadeadamente os comandos 
@@ -331,7 +338,8 @@ int executa(FUNCTION f)
                     // não executa na primeira iteração
                     if (i > 0)
                     {
-                        //alarm(tmp_inat_MAX);
+                        signal(SIGALRM, sigALRM_handler_inac);
+                        alarm(tmp_inat_MAX);
                         dup2(pipeAnt, STDIN_FILENO);
                         close(pipeAnt);
                     }
@@ -377,10 +385,10 @@ int executa(FUNCTION f)
                 new->state = FINISHED;
                 re_write_function(new);
                 end_output(new->number);
+                free(new);
             }
             _exit(1);
         }
-        free(f);
     }
     return 0;
 }
@@ -643,8 +651,7 @@ int output(int pid_cliente, int line)
             perror("error open output");
             return -1;
         }
-        printf("fnumber:%d\n", index->function_number);
-        printf("off size:%ld\n", index->offset);
+        
         lseek(fdout, index->offset, SEEK_SET);
 
         size = index->size;
