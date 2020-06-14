@@ -297,6 +297,7 @@ int divide_command(char *command, char **str)
 
     for (i = 0; tok; i++)
     {
+        str[i] = malloc(COMMAND_LENGTH_MAX * sizeof(char *));
         str[i] = malloc(20 * sizeof(char));
         strcpy(str[i], strdup(tok));
         tok = strtok(NULL, " ");
@@ -337,6 +338,8 @@ int executa(FUNCTION f)
                     pipe(proxPipe);
                 if (fork() == 0)
                 {
+                    signal(SIGALRM, sigALRM_handler_inac);
+                    alarm(tmp_inat_MAX);
                     // criar a ponte entre os comandos
 
                     //não cria no ultimo o proximo pipe
@@ -349,8 +352,6 @@ int executa(FUNCTION f)
                     // não executa na primeira iteração
                     if (i > 0)
                     {
-                        signal(SIGALRM, sigALRM_handler_inac);
-                        alarm(tmp_inat_MAX);
                         dup2(pipeAnt, STDIN_FILENO);
                         close(pipeAnt);
                     }
@@ -360,8 +361,7 @@ int executa(FUNCTION f)
                         redirect_output(f->number);
                     }
                     int count = words_count((f->commands)[i].command);
-                    char **command_divided = malloc((count + 1) * sizeof(char *));
-
+                    char **command_divided = malloc((count + 2) * sizeof(char *));
                     divide_command((f->commands)[i].command, command_divided);
                     (f->commands)[i].state = RUNNING;
                     (f->commands)[i].pid = getpid();

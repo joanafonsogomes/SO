@@ -1,0 +1,17 @@
+tempo-execucao 5
+executar "sleep 3"
+terminar 1
+listar
+executar "ls|wc"
+ajuda
+executar "date"
+executar "cut -f7 -d: /etc/passwd |uniq|wc -l"
+output 2
+executar "./time.sh"
+listar
+listar
+listar
+listar
+listar
+historico
+exit
