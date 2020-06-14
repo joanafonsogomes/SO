@@ -32,6 +32,9 @@ void sigint_handler(int signum)
     _exit(0);
 }
 
+/*
+Função que procura a tarefa com um determinado pid
+*/
 FUNCTION find_function(int pid)
 {
     int fd;
@@ -54,6 +57,9 @@ FUNCTION find_function(int pid)
     return f;
 }
 
+/*
+Função redireciona o stout para o ficheiro output
+*/
 int redirect_output(int function_number)
 {
     int fd;
@@ -84,6 +90,9 @@ int redirect_output(int function_number)
     return 1;
 }
 
+/*
+Função que termina o redirecionamento do output
+*/
 int end_output(int function_number)
 {
     int fd;
@@ -108,7 +117,9 @@ int end_output(int function_number)
     return 1;
 }
 
-
+/*
+Função que atualiza o estado de uma tarefa
+*/
 int re_write_function(FUNCTION new_function)
 {
     int fd;
@@ -185,6 +196,9 @@ void sigALRM_handler_inac(int signum)
     _exit(TIMEINAC);
 }
 
+/*
+Função que adiciona uma tarefa ao ficheiro de historico
+*/
 int write_log(FUNCTION f)
 {
     int fd;
@@ -229,8 +243,6 @@ int write_log(FUNCTION f)
     close(fd);
     return number;
 }
-
-
 
 /*
 Função que atribui à variavel 'tmp_inat_MAX' o tempo máximo 
@@ -293,7 +305,6 @@ int divide_command(char *command, char **str)
     return i;
 }
 
-
 /*
 Função destinada a executar encadeadamente os comandos 
 recebidos através da struct FUNCTION.
@@ -301,7 +312,7 @@ recebidos através da struct FUNCTION.
 int executa(FUNCTION f)
 {
     if (fork() == 0)
-    {   
+    {
         int status;
         int pid;
         if ((pid = fork()) == 0)
@@ -394,11 +405,11 @@ int executa(FUNCTION f)
 }
 
 /*
-Listar
+Função que lista as tarefas em execução
 */
 int list(int pid_cliente)
 {
-    //encontrar o pipe pretendido (pipe+nova tarefa #3
+
     //encontrar o pipe pretendido (pipe+pid do cliente)
     char pid_string[32];
     sprintf(pid_string, "%d", pid_cliente);
@@ -434,22 +445,17 @@ int list(int pid_cliente)
             sprintf(string, "%d", p);
             write(out, string, sizeof string);
             write(out, ": ", 2);
-            //printf("#%d: ",p);
-            //printf("executar \"");
             for (int i = 0; i < f->commands_number; i++)
             {
                 char prog[COMMAND_LENGTH_MAX] = "";
                 strcpy(prog, (f->commands[i]).command);
                 write(out, prog, COMMAND_LENGTH_MAX);
-                //printf("%s",(f->commands[i]).command);
                 if (i < f->commands_number - 1)
                 {
                     write(out, "|", 1);
-                    //printf("|");
                 }
             }
             write(out, "\n", 1);
-            //printf("\n");
         }
     }
 
@@ -461,7 +467,7 @@ int list(int pid_cliente)
 }
 
 /*
-Histórico
+FUnção para mostrar ao cliente as tarefas já executadas ou terminadas
 */
 int historico(int pid_cliente)
 {
@@ -470,8 +476,6 @@ int historico(int pid_cliente)
     sprintf(pid_string, "%d", pid_cliente);
     char nome_pipe[64] = "pipe";
     strcat(nome_pipe, pid_string);
-
-    //printf("nome do pipe: %s \n", nome_pipe);
 
     printf("Pedido de listar cliente: %d\n", pid_cliente);
 
@@ -520,22 +524,17 @@ int historico(int pid_cliente)
             }
 
             write(out, ": ", 2);
-            //printf("#%d: ",p);
-            //printf("executar \"");
             for (int i = 0; i < f->commands_number; i++)
             {
                 char prog[COMMAND_LENGTH_MAX] = "";
                 strcpy(prog, (f->commands[i]).command);
                 write(out, prog, COMMAND_LENGTH_MAX);
-                //printf("%s",(f->commands[i]).command);
                 if (i < f->commands_number - 1)
                 {
                     write(out, "|", 1);
-                    //printf("|");
                 }
             }
             write(out, "\n", 1);
-            //printf("\n");
         }
     }
 
@@ -547,7 +546,7 @@ int historico(int pid_cliente)
 }
 
 /*
-Função dedicad à funcionalidade terminar
+Função dedicada à funcionalidade terminar.
 */
 int term(int number)
 {
@@ -597,7 +596,7 @@ int term(int number)
 }
 
 /*
-OUTPUT
+Função que devolve o output pretendido ao cliente.
 */
 int output(int pid_cliente, int line)
 {
@@ -607,8 +606,6 @@ int output(int pid_cliente, int line)
     sprintf(pid_string, "%d", pid_cliente);
     char nome_pipe[64] = "pipe";
     strcat(nome_pipe, pid_string);
-
-    //printf("nome do pipe: %s \n", nome_pipe);
 
     printf("Pedido de ouput, cliente: %d\n", pid_cliente);
 
@@ -644,14 +641,14 @@ int output(int pid_cliente, int line)
     if (find == 1)
     {
         //buscar o output para o indice encontrado
-        
+
         int fdout;
         if ((fdout = open(OUTPUT_FILE, O_RDONLY, 0644)) < 0)
         {
             perror("error open output");
             return -1;
         }
-        
+
         lseek(fdout, index->offset, SEEK_SET);
 
         size = index->size;
@@ -677,7 +674,6 @@ int output(int pid_cliente, int line)
 
 int main(int argc, char **argv)
 {
-    //signal(SIGALRM, sig_alarm_handler);
     signal(SIGINT, sigint_handler);
 
     puts("Starting server...");
@@ -731,10 +727,8 @@ int main(int argc, char **argv)
             {
                 output(f->client, f->line);
             }
-            
         }
         free(f);
-        
     }
 
     close(in);

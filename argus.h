@@ -58,6 +58,7 @@ struct command{
 	int state;
 	//pid do comando
 	int pid;
+	//conteudo do comando
 	char command[COMMAND_LENGTH_MAX];
 };
 
@@ -76,12 +77,16 @@ struct function{
 	pid_t client;
 	//pid da tarefa
 	int pid;
+	//qual a funcionalidade
 	int type;
    	int tempo;
+	//numero de comandos
 	int commands_number;
 	//estado da tarefa
 	int state;
+	//lista de comandos a executar
    	struct command commands[COMMAND_NUMBER_MAX];
+	//numero da tarefa
    	int tarefa;
 	//linha para o comando output
 	int line;

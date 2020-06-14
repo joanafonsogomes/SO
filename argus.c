@@ -449,7 +449,7 @@ int shell()
                 //myprint(args[1]);
                 exec(args[1], SHELL);
             }
-            else if (!strcmp(args[0], "listar") && !args[1])
+            else if (!strcmp(args[0], "listar"))
             {
                 //list
                 list();
@@ -566,10 +566,7 @@ int main(int argc, char **argv)
         }
         printf("\n");
     }
-
-    char fifo[64] = "";
-    getpipe(fifo);
-    unlink(fifo);
+    unlink(pipe);
 
     return 0;
 }
