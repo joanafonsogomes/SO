@@ -8,6 +8,10 @@
 #include <signal.h>
 #include "argus.h"
 
+/*
+Função coloca na variavel recebida como argumento o nome do pipe
+de onde o cliente recebe as mensagens vindas do servidor.
+*/
 void getpipe(char *pipe)
 {
     int pid = getpid();
@@ -64,18 +68,17 @@ int parse_linha(char *buff, char **str)
 /*
 Função para ler uma linha
 */
-ssize_t readln(int fildes, void *buf, size_t nbyte)
+ssize_t readln(int fildes, void *buf, size_t bytes)
 {
     size_t i = 0;
     ssize_t n = 1;
     char c = ' ';
 
-    /* Enquanto está a ler algo mas que seja menos de nbyte caracteres, e não seja o '\n' */
-    while ((i < nbyte) && (n > 0) && (c != '\n'))
+    // Lê até bytes ou encontrar \n
+    while ((i < bytes) && (n > 0) && (c != '\n'))
     {
-        //Lê um caractere
         n = read(fildes, &c, 1);
-        // Se não for o '\n' adiciona-o ao buffer
+        // coloca no buf enquanto não é \n
         if (n && (c != '\n'))
         {
             ((char *)buf)[i] = c;
@@ -83,24 +86,23 @@ ssize_t readln(int fildes, void *buf, size_t nbyte)
         }
     }
 
-    // Adição de EOF == 0 com verificação no caso de chegar ao limite de leitura (N);
-    if (i < nbyte)
+    // caso chegue ao fim do buf
+    if (i < bytes)
     {
         ((char *)buf)[i] = 0;
     }
     else
     {
-        // passou o limite (i == 100). buf[99] = EOF.
         i--;
         ((char *)buf)[i] = 0;
     }
 
-    // se deu erro na leitura retorna esse mesmo erro
+    
     if (n < 0)
     {
         return n;
     }
-    // no caso de apanhar a linha só com o '\n'
+    // encontra só \n
     if ((n == 0) && (i == 0))
     {
         return (-1);
@@ -131,69 +133,6 @@ int send(FUNCTION new_function)
     return 1;
 }
 
-/*
-int command_finish(char *command)
-{
-    COMMAND c = malloc(sizeof(struct command));
-    int bytes_read;
-    int res = -1;
-
-    int fd = open(COMMAND_FILE, O_RDWR, 0640);
-
-    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
-    {
-
-        if (!strcmp(c->command, command))
-        {
-            myprint(strdup(c->command));
-            c->state = FINISHED;
-            res = lseek(fd, -sizeof(struct command), SEEK_CUR);
-            res = write(fd, c, sizeof(struct command));
-        }
-    }
-    close(fd);
-    free(c);
-    return res;
-}
-*/
-
-/*
-void commands_print()
-{
-    COMMAND c = malloc(sizeof(struct command));
-    int bytes_read;
-
-    int fd = open(COMMAND_FILE, O_RDWR, 0640);
-    while ((bytes_read = read(fd, c, sizeof(struct command))) > 0)
-    {
-        myprint(c->command);
-    }
-    close(fd);
-    free(c);
-}
-*/
-
-/*
-void functions_print()
-{
-    FUNCTION f = malloc(sizeof(struct function));
-    int bytes_read;
-
-
-
-    int fd = open(FUNCTIONS_FILE, O_RDWR, 0640);
-    while ((bytes_read = read(fd, f, sizeof(struct function))) > 0)
-    {
-        for (int i = 0; i < f->commands_number; i++)
-        {
-            myprint((f->commands)[i]->command);
-            myprint("\n");
-
-        }
-    }
-    close(fd);
-}
-*/
 
 /*
 Função que conta quantos comandos foram escritos no ficheiro auxiliar.
@@ -349,6 +288,9 @@ void tmp_inat(char *args)
     free(new_function);
 }
 
+/*
+Função para a funcionalidade listar
+*/
 int list()
 {
     FUNCTION new_function = malloc(sizeof(struct function));
@@ -386,6 +328,7 @@ int list()
 }
 
 /*
+Função para a funcionalidade terminar tarefa
 */
 int term(int number)
 {
@@ -397,6 +340,9 @@ int term(int number)
     return 1;
 }
 
+/*
+Função para a funcionalidade historico
+*/
 int hist()
 {
     FUNCTION new_function = malloc(sizeof(struct function));
@@ -433,6 +379,9 @@ int hist()
     return 1;
 }
 
+/*
+Função para a funcionalidade output
+*/
 int output(int line)
 {
     FUNCTION f = malloc(sizeof(struct function));
