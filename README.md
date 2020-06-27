@@ -1,4 +1,4 @@
-# Projeto Sistemas Operativos 2019/2020 - UMCarroJá!
+# Projeto Sistemas Operativos 2019/2020
 
 Controlo e Monitorização de Processos e Comunicação
 
