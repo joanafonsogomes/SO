@@ -1,13 +1,6 @@
-# Projeto Sistemas Operativos 2019/2020
-
+# SO
 Controlo e Monitorização de Processos e Comunicação
 
-## Authors
+Projeto de **Sistemas Operativos** 2019/20
 
-* **Filipe Guimarães** - [Github](https://github.com/filipeguimaraes)
-* **Joana Gomes** - [Github](https://github.com/joanafonsogomes)
-* **Susana Marques** - [Github](https://github.com/SusanaMarques)
-
-## Acknowledgments
-
-* operating systems
+###### By [@filipeguimaraes](https://github.com/filipeguimaraes) [@joanafonsogomes]( https://github.com/joanafonsogomes) [@SusanaMarques]( https://github.com/SusanaMarques)
