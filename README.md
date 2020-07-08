@@ -1,6 +1,6 @@
 # SO
 
-**Control and Monitoring of Processes and Communication**
+Control and Monitoring of Processes and Communication
 
 **Operating Systems (Sistemas Operativos)** project 2019/20
 
